@@ -8,4 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [0.1.0]
 
-- First release.
+- Parse the Retry-After header in both forms with `parse_retry_after`, resolving an
+  HTTP-date against a reference time and never returning a negative delay.
+- Build the Retry-After header from a number of seconds or a datetime with
+  `build_retry_after`.
+- Raise `RetryAfterError` on a malformed value.
