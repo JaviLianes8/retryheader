@@ -26,10 +26,8 @@ def assemble(
     ``offset`` is the zone offset in minutes east of UTC.
     """
     hour, minute, second = clock
-    if hour > 23 or minute > 59 or second > 60:
-        raise RetryAfterError(f"invalid time of day in date: {text!r}")
     # A leap second ends a minute; datetime cannot hold it, so it becomes the first
-    # second of the next minute.
+    # second of the next minute. datetime() rejects every other out-of-range field.
     leap = second == 60
     if year is None:
         year = resolve_two_digit_year(yy or 0, (month, day, hour, minute, second), now)
