@@ -7,3 +7,6 @@ Each file is the raw file at
 https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/<name>
 
 Only the files holding List or Item cases are kept. LICENSE.md is the suite's license.
+
+The serialisation/ folder holds the suite's serialisation-tests/ files, from
+https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/serialisation-tests/<name>

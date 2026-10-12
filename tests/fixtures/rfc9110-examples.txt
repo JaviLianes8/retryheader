@@ -1,0 +1,7 @@
+# Copied verbatim from https://www.rfc-editor.org/rfc/rfc9110.txt, fetched 2026-10-12:
+# the Retry-After examples of section 10.2.3 and the HTTP-date examples of section 5.6.7.
+Retry-After: Fri, 31 Dec 1999 23:59:59 GMT
+Retry-After: 120
+Sun, 06 Nov 1994 08:49:37 GMT    ; IMF-fixdate
+Sunday, 06-Nov-94 08:49:37 GMT   ; obsolete RFC 850 format
+Sun Nov  6 08:49:37 1994         ; ANSI C's asctime() format

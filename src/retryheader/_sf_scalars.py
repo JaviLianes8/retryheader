@@ -104,7 +104,8 @@ def parse_bytes(cur: Cursor) -> bytes:
         raise SFError("byte sequences are base64")
     try:
         # Padding is synthesised and pad bits are not checked, as section 4.2.7 asks.
-        return base64.b64decode(content + "=" * (-len(content) % 4), validate=True)
+        bare = content.rstrip("=")
+        return base64.b64decode(bare + "=" * (-len(bare) % 4), validate=True)
     except binascii.Error as exc:
         raise SFError("invalid base64") from exc
 
