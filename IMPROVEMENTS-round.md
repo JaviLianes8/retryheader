@@ -2,15 +2,15 @@
 
 Progress:
 - [x] Brainstorm ranked improvements (this file)
-- [ ] HTTP-date: the three RFC 9110 formats, two-digit years, leap seconds, strict mode
-- [ ] Retry-After parsing: exact field whitespace, typed rejection, spec fixtures
-- [ ] Retry-After building: never earlier than asked, timedelta, rejects NaN and infinity
-- [ ] Structured field parser, checked against the httpwg test suite
-- [ ] RateLimit and RateLimit-Policy: typed parse and build
-- [ ] `delay_from_headers`: one call from a response's headers to a delay
-- [ ] Contracts: oracles, typing, README examples, installed wheel e2e
-- [ ] Docs: README, CHANGELOG, docstrings, packaging metadata
-- [ ] Gates: ruff format, ruff check, mypy --strict, pytest
+- [x] HTTP-date: the three RFC 9110 formats, two-digit years, leap seconds, strict mode
+- [x] Retry-After parsing: exact field whitespace, typed rejection, spec fixtures
+- [x] Retry-After building: never earlier than asked, timedelta, rejects NaN and infinity
+- [x] Structured field parser, checked against the httpwg test suite
+- [x] RateLimit and RateLimit-Policy: typed parse and build
+- [x] `delay_from_headers`: one call from a response's headers to a delay
+- [x] Contracts: oracles, typing, README examples, installed wheel e2e
+- [x] Docs: README, CHANGELOG, docstrings, packaging metadata
+- [x] Gates: ruff format, ruff check, mypy --strict, pytest
 - [ ] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean
 
