@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "retryheader"
-version = "0.2.0"
+version = "0.2.1"
 description = "Parse and build HTTP Retry-After, HTTP-date, RateLimit and RateLimit-Policy headers, zero dependencies and typed"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -38,6 +38,11 @@ Issues = "https://github.com/JaviLianes8/retryheader/issues"
 Changelog = "https://github.com/JaviLianes8/retryheader/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
 Funding = "https://buymeacoffee.com/jlianesglrs"
+
+[tool.hatch.build.targets.sdist]
+# Third-party test files are fetched locally and never shipped; only their manifest is.
+include = ["src", "tests", "scripts/fetch_upstream.py", "CHANGELOG.md", "CONTRIBUTING.md"]
+exclude = ["**/__pycache__", "tests/upstream/*", "!tests/upstream/MANIFEST.json"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/retryheader"]

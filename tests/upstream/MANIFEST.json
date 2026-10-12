@@ -1,0 +1,200 @@
+{
+  "binary.json": {
+    "title": "httpwg structured-field-tests: binary.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/binary.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 3005,
+    "sha256": "653da96a89c829c7c8f18ce05c315a9b622e1b7c9f140a52d23c02163fbed4ab",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "boolean.json": {
+    "title": "httpwg structured-field-tests: boolean.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/boolean.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 1574,
+    "sha256": "0413a8dd07dae5a794e9c968cce11dd913d448892a6ff0b102c6530fa4b9446f",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "date.json": {
+    "title": "httpwg structured-field-tests: date.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/date.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 3009,
+    "sha256": "187b13bc54e017a26a18fe0270792fc2b9a3819faac3cfbc7490c38d8a7653b3",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "display-string.json": {
+    "title": "httpwg structured-field-tests: display-string.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/display-string.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 4922,
+    "sha256": "819283e6992e3040c377417c2a2e2e7bff3aa480eb2f1a9db66b27c865529169",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "examples.json": {
+    "title": "httpwg structured-field-tests: examples.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/examples.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 6084,
+    "sha256": "f180e525adcb8bf0199e6fdae3e915e030aef28529de138ad2967d2115fd6835",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "item.json": {
+    "title": "httpwg structured-field-tests: item.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/item.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 735,
+    "sha256": "6104e2be2fdc269071973a577ae5460e55c25e40ee138a064a3dabcacf9d99a0",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "key-generated.json": {
+    "title": "httpwg structured-field-tests: key-generated.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/key-generated.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 149773,
+    "sha256": "7cf177687eadfa15e8aafe158788348e067dbadc675987823a2a08a414ebeafc",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "LICENSE.md": {
+    "title": "httpwg structured-field-tests: LICENSE.md",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/LICENSE.md",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 1561,
+    "sha256": "db59c2f3609ac3b183fc0c5c7d71da6212b6c86c10cb7715e30d6b876c3a587d",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "list.json": {
+    "title": "httpwg structured-field-tests: list.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/list.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 1750,
+    "sha256": "d8d21cac1f5814363a5cfe56b1bd80963bce36cacbb0c1a59d59c14ae7622ba7",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "listlist.json": {
+    "title": "httpwg structured-field-tests: listlist.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/listlist.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 1969,
+    "sha256": "82b961c02b55753d122a8f72bffde93d178575f03a43154818afb73091f688cf",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "number-generated.json": {
+    "title": "httpwg structured-field-tests: number-generated.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/number-generated.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 46235,
+    "sha256": "32b672b3cc61bc0b26d9d7da4b2d86508e05bab029bfce43a65afc8fd355c922",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "number.json": {
+    "title": "httpwg structured-field-tests: number.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/number.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 6108,
+    "sha256": "fe5cab144d9cd76ba465ed6222eea68e19d7d8679c0e1499ca7f9c7af34f420d",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "param-list.json": {
+    "title": "httpwg structured-field-tests: param-list.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/param-list.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 4814,
+    "sha256": "232e87b307051619055262cd6ac550790961db11ed1f58d8139186b872afca17",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "param-listlist.json": {
+    "title": "httpwg structured-field-tests: param-listlist.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/param-listlist.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 1022,
+    "sha256": "fde5860376f2be0d2d497fb2e2c5a36ee2bdace0ecfc511ba474ec14e6852321",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "serialisation-tests/key-generated.json": {
+    "title": "httpwg structured-field-tests: serialisation-tests/key-generated.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/serialisation-tests/key-generated.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 141470,
+    "sha256": "a1719ac20a72a3ea062a3d1f4c3e3e7858420af80f15f009f7f1b30d0ace1dab",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "serialisation-tests/number.json": {
+    "title": "httpwg structured-field-tests: serialisation-tests/number.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/serialisation-tests/number.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 1530,
+    "sha256": "f73b5239a7e84cfcc19e29c01dbae85da0a4c6b3273018cc92a19c1fc632b4a1",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "serialisation-tests/string-generated.json": {
+    "title": "httpwg structured-field-tests: serialisation-tests/string-generated.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/serialisation-tests/string-generated.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 6285,
+    "sha256": "035b53c08a706ce401a3b0e0ebc13bf6090edefc14747089f13bf6ad66e6d822",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "serialisation-tests/token-generated.json": {
+    "title": "httpwg structured-field-tests: serialisation-tests/token-generated.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/serialisation-tests/token-generated.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 33433,
+    "sha256": "1f4db75952490df9b7ef17f71f745275482f3cb36e34527c3c1ca434f7e3d868",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "string-generated.json": {
+    "title": "httpwg structured-field-tests: string-generated.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/string-generated.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 44542,
+    "sha256": "99c4d3dac05e0452a0b8bee2b6b1d78898cfb6ccda2cc34aa6d1fcf1dfd2864a",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "string.json": {
+    "title": "httpwg structured-field-tests: string.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/string.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 2556,
+    "sha256": "247080f284048c5931c49e6b63064fd3caa49e737b565084b5efa3ccace33137",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "token-generated.json": {
+    "title": "httpwg structured-field-tests: token-generated.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/token-generated.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 54972,
+    "sha256": "33f8cb0f15958126f682608efb99eea8214ce92a04d5fb56999c3c5f01046439",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "token.json": {
+    "title": "httpwg structured-field-tests: token.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/token.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-13",
+    "size": 1125,
+    "sha256": "9fd251e8ac0cb3ef71533b6063affb09c6faef1cdefa9568ce8c94a0041381ef",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  }
+}

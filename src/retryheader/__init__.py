@@ -11,7 +11,7 @@ from ._ratelimit import parse_ratelimit, parse_ratelimit_policy
 from ._ratelimit_build import build_ratelimit, build_ratelimit_policy
 from ._ratelimit_types import QuotaPolicy, ServiceLimit
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "QuotaPolicy",

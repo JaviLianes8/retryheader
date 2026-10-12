@@ -1,10 +1,11 @@
-"""The serialiser against the httpwg suite: canonical forms and serialisation-tests."""
+"""The serialiser against the httpwg suite: canonical forms and serialisation-tests.
+
+The suite is fetched locally (tests/upstream/MANIFEST.json); these tests skip until then.
+"""
 
 from __future__ import annotations
 
 import base64
-import json
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -12,16 +13,15 @@ import pytest
 from retryheader._sf import parse_item, parse_list
 from retryheader._sf_serialize import serialize_bare, serialize_list, serialize_params
 from retryheader._sf_types import BareItem, Date, DisplayString, Token
+from tests.upstream_files import SKIP_REASON, fetched, json_files
 
-FIXTURES = Path(__file__).parent / "fixtures" / "sf"
 
-
-def _load(folder: Path) -> list[tuple[str, dict[str, Any]]]:
+def _load(prefix: str) -> list[tuple[str, dict[str, Any]]]:
     out = []
-    for path in sorted(folder.glob("*.json")):
-        for case in json.loads(path.read_text(encoding="utf-8")):
+    for stem, cases in json_files(prefix):
+        for case in cases:
             if case["header_type"] in ("list", "item"):
-                out.append((f"{path.stem}: {case['name']}", case))
+                out.append((f"{stem}: {case['name']}", case))
     return out
 
 
@@ -33,12 +33,13 @@ def _has_inner_list(case: dict[str, Any]) -> bool:
 
 CANONICAL = [
     pytest.param(case, id=name)
-    for name, case in _load(FIXTURES)
+    for name, case in _load("")
     if not case.get("must_fail") and not _has_inner_list(case)
 ]
-SERIALISATION = [pytest.param(case, id=name) for name, case in _load(FIXTURES / "serialisation")]
+SERIALISATION = [pytest.param(case, id=name) for name, case in _load("serialisation-tests")]
 
 
+@pytest.mark.skipif(not fetched(), reason=SKIP_REASON)
 def test_the_cases_are_loaded() -> None:
     assert len(CANONICAL) == 579
     assert len(SERIALISATION) == 355

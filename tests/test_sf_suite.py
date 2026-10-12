@@ -1,10 +1,12 @@
-"""The structured field parser against the httpwg test suite (see fixtures/sf/SOURCE.txt)."""
+"""The structured field parser against the httpwg test suite.
+
+The suite is not committed: tests/upstream/MANIFEST.json pins its files and
+`python scripts/fetch_upstream.py` fetches them. These tests skip until then.
+"""
 
 from __future__ import annotations
 
 import base64
-import json
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -12,22 +14,22 @@ import pytest
 from retryheader._sf import Member, parse_item, parse_list
 from retryheader._sf_scalars import SFError
 from retryheader._sf_types import BareItem, Date, DisplayString, Token
-
-FIXTURES = Path(__file__).parent / "fixtures" / "sf"
+from tests.upstream_files import SKIP_REASON, fetched, json_files
 
 
 def _cases() -> list[Any]:
     cases = []
-    for path in sorted(FIXTURES.glob("*.json")):
-        for case in json.loads(path.read_text(encoding="utf-8")):
+    for stem, file_cases in json_files():
+        for case in file_cases:
             if case["header_type"] in ("list", "item"):
-                cases.append(pytest.param(case, id=f"{path.stem}: {case['name']}"))
+                cases.append(pytest.param(case, id=f"{stem}: {case['name']}"))
     return cases
 
 
 CASES = _cases()
 
 
+@pytest.mark.skipif(not fetched(), reason=SKIP_REASON)
 def test_the_suite_is_loaded() -> None:
     # Guards against a glob or filter change that silently skips the suite.
     assert len(CASES) == 1157
@@ -35,6 +37,11 @@ def test_the_suite_is_loaded() -> None:
 
 @pytest.mark.parametrize("case", CASES)
 def test_suite_case(case: dict[str, Any]) -> None:
+    check_case(case)
+
+
+def check_case(case: dict[str, Any]) -> None:
+    """Parse one suite case and compare it with its expected value or failure."""
     text = ", ".join(case["raw"])
     parse = parse_list if case["header_type"] == "list" else parse_item
     if case.get("must_fail"):
