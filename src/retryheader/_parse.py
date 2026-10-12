@@ -16,7 +16,9 @@ def parse_retry_after(value: str, *, now: datetime | None = None, strict: bool =
     digits such as ``"120"``, or an HTTP-date such as ``"Fri, 31 Dec 1999 23:59:59 GMT"``
     in any of its three formats. A date is resolved against ``now`` (the current UTC
     time by default; a naive value is read as UTC) and a date in the past gives zero.
-    Spaces and tabs around the value are ignored. ``strict`` limits dates to the
+    Spaces and tabs around the value are ignored. The grammar puts no bound on
+    delay-seconds, so a value too large for a float gives ``math.inf``: cap the result
+    before handing it to ``time.sleep`` or ``timedelta``. ``strict`` limits dates to the
     RFC 9110 grammar, see ``parse_http_date``.
 
     Raises RetryAfterError on anything else, TypeError when value is not a str.

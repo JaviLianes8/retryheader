@@ -46,10 +46,18 @@ def test_suite_case(case: dict[str, Any]) -> None:
     except SFError:
         assert case.get("can_fail"), f"rejected a valid field: {text!r}"
         return
-    if case["header_type"] == "list":
-        assert [_member(m) for m in parsed] == case["expected"]
-    else:
-        assert _item(parsed) == case["expected"]
+    actual = [_member(m) for m in parsed] if case["header_type"] == "list" else _item(parsed)
+    assert _typed(actual) == _typed(case["expected"])
+
+
+def _typed(value: Any) -> Any:
+    # Tag scalars with their type: 1, 1.0 and True compare equal in Python, but an
+    # Integer, a Decimal and a Boolean are different structured field values.
+    if isinstance(value, list):
+        return [_typed(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _typed(v) for k, v in value.items()}
+    return (type(value).__name__, value)
 
 
 def _member(member: Member) -> Any:

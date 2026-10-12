@@ -64,10 +64,14 @@ def format_http_date(moment: datetime) -> str:
 
     A naive datetime is read as UTC. A fraction of a second rounds up to the next
     whole second, so the rendered moment is never earlier than the one given.
+    Raises TypeError for a non-datetime, ValueError when the UTC moment (rounded up)
+    falls outside years 1 to 9999.
     """
     check_datetime(moment)
     utc = as_utc(moment)
     if utc.microsecond:
+        if utc.replace(microsecond=0) == datetime.max.replace(microsecond=0, tzinfo=utc.tzinfo):
+            raise ValueError("rounding up passes the last representable second")
         utc = utc.replace(microsecond=0) + timedelta(seconds=1)
     day = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[utc.weekday()]
     month = MONTHS[utc.month - 1]

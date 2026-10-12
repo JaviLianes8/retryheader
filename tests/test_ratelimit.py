@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timezone
 
 import pytest
@@ -24,7 +26,7 @@ def test_every_draft_limit_example_parses(value: str) -> None:
 
 def test_the_fixtures_are_loaded() -> None:
     assert len(draft_fields("RateLimit-Policy")) == 17
-    assert len(draft_fields("RateLimit")) == 22
+    assert len(draft_fields("RateLimit")) == 23
 
 
 def test_policies_carry_every_defined_parameter() -> None:

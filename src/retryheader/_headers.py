@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from datetime import datetime
+from typing import Protocol
 
 from ._errors import RateLimitError, RetryAfterError
 from ._httpdate import parse_http_date
@@ -11,7 +12,14 @@ from ._parse import parse_retry_after
 from ._ratelimit import parse_ratelimit
 from ._time import check_datetime
 
-Headers = Mapping[str, str] | Iterable[tuple[str, str]]
+
+class HeaderItems(Protocol):
+    """Anything with ``items()`` over (name, value) pairs, like http.client.HTTPMessage."""
+
+    def items(self) -> Iterable[tuple[str, str]]: ...
+
+
+Headers = Mapping[str, str] | HeaderItems | Iterable[tuple[str, str]]
 
 
 def delay_from_headers(
@@ -28,7 +36,8 @@ def delay_from_headers(
     whose available quota ``r`` is zero. Malformed fields are ignored, as both
     specifications ask. An HTTP-date is measured from ``now`` (the current UTC time by
     default) or, with ``use_date_header``, from the response's own Date header when it
-    is valid, which cancels any clock difference between client and server.
+    is valid, which cancels any clock difference between client and server. Like
+    ``parse_retry_after``, an absurdly large delay-seconds gives ``math.inf``.
     """
     if now is not None:
         check_datetime(now)

@@ -34,6 +34,9 @@ def assemble(
     try:
         local = datetime(year, month, day, hour, minute, 59 if leap else second)
         moment = local - timedelta(minutes=offset)
+        # Leap seconds are only ever inserted at 23:59:60 UTC (RFC 9110 5.6.7).
+        if leap and (moment.hour, moment.minute) != (23, 59):
+            raise RetryAfterError(f"a leap second can only be 23:59:60 UTC: {text!r}")
         if leap:
             moment += timedelta(seconds=1)
     except (ValueError, OverflowError) as exc:

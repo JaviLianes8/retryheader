@@ -27,11 +27,17 @@ def rfc9110_dates() -> list[str]:
 
 
 def draft_fields(field: str) -> list[str]:
-    """Every value of one field in the RateLimit draft examples."""
-    prefix = field + ": "
-    return [
-        line[len(prefix) :] for line in _lines("ratelimit-draft-11.txt") if line.startswith(prefix)
-    ]
+    """Every value of one field in the RateLimit draft examples.
+
+    The field value excludes the optional whitespace after the colon (RFC 9110 5.5);
+    one draft line has none.
+    """
+    out = []
+    for line in _lines("ratelimit-draft-11.txt"):
+        name, _, value = line.partition(":")
+        if name == field:
+            out.append(value.strip(" 	"))
+    return out
 
 
 def draft_responses() -> list[list[tuple[str, str]]]:

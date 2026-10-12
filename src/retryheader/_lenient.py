@@ -12,7 +12,7 @@ from ._calendar import MONTHS, assemble
 # out on purpose: RFC 5322 says they carry no reliable meaning.
 _DATE = re.compile(
     r"(?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)[ \t]*,[ \t]*)?"
-    rf"(?P<day>\d{{1,2}})[ \t]+(?P<month>{'|'.join(MONTHS)})[ \t]+(?P<year>\d{{4}}|\d{{2}})"
+    rf"(?P<day>\d{{1,2}})[ \t]+(?P<month>{'|'.join(MONTHS)})[ \t]+(?P<year>\d{{2,4}})"
     r"[ \t]+(?P<hour>\d{2}):(?P<minute>\d{2})(?::(?P<second>\d{2}))?"
     r"[ \t]+(?P<zone>[+-]\d{4}|UT|UTC|GMT|EST|EDT|CST|CDT|MST|MDT|PST|PDT)",
     re.ASCII | re.IGNORECASE,
@@ -30,10 +30,16 @@ def parse_rfc5322(text: str, now: datetime | None) -> datetime | None:
     offset = _zone_minutes(fields["zone"].upper())
     if offset is None:
         return None
-    year = fields["year"]
+    # RFC 5322 section 4.3: a two-digit year below 50 is 20xx, from 50 it is 19xx, and
+    # a three-digit year is counted from 1900.
+    year = int(fields["year"])
+    if len(fields["year"]) == 2:
+        year += 2000 if year < 50 else 1900
+    elif len(fields["year"]) == 3:
+        year += 1900
     return assemble(
-        year=int(year) if len(year) == 4 else None,
-        yy=int(year) if len(year) == 2 else None,
+        year=year,
+        yy=None,
         month=MONTHS.index(fields["month"].title()) + 1,
         day=int(fields["day"]),
         clock=(int(fields["hour"]), int(fields["minute"]), int(fields["second"] or 0)),

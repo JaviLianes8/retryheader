@@ -84,5 +84,5 @@ def _bare(raw: Any) -> BareItem:
         if kind == "date":
             return Date(value)
         return DisplayString(value)
-    value: BareItem = raw
-    return value
+    plain: BareItem = raw
+    return plain

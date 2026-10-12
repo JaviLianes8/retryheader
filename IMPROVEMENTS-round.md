@@ -11,7 +11,7 @@ Progress:
 - [x] Contracts: oracles, typing, README examples, installed wheel e2e
 - [x] Docs: README, CHANGELOG, docstrings, packaging metadata
 - [x] Gates: ruff format, ruff check, mypy --strict, pytest
-- [ ] Independent review findings fixed with regression tests
+- [x] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean
 
 ## Starting point
@@ -73,6 +73,21 @@ specifications turned up these gaps:
    suite. Docstrings on every public name, CHANGELOG entry.
 9. **Packaging.** Supported version classifiers, keywords, version agreement with the
    metadata, and an installed-wheel e2e test.
+
+## Review fixes
+
+- `delay_from_headers` is typed to accept anything with `items()`, so
+  `http.client.HTTPMessage` and `email.message.Message` pass `mypy --strict`.
+- `ServiceLimit` and `QuotaPolicy` pickle, copy and go through `dataclasses.asdict`;
+  `extra` is a read-only dict instead of a mapping proxy.
+- A delay-seconds too large for a float is documented as `math.inf`.
+- Datetimes whose UTC moment (rounded up) leaves years 1 to 9999 raise `ValueError`,
+  not `OverflowError`; so does a delay with more digits than Python will print.
+- A leap second is only accepted at 23:59:60 UTC.
+- Lenient RFC 5322 dates read two- and three-digit years with the RFC 5322 rule.
+- The structured field suite compares values with their types, the draft fixture
+  includes the one example line without a space after the colon, and the tests pass
+  `mypy --strict` too (the gate now checks them).
 
 ## Out of scope
 

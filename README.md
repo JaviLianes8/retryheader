@@ -71,7 +71,9 @@ print(build_retry_after(timedelta(minutes=2)))  # 120
 print(build_retry_after(now))  # Wed, 21 Oct 2026 07:28:00 GMT
 ```
 
-`now` defaults to the current UTC time and a naive datetime is read as UTC. A
+`now` defaults to the current UTC time and a naive datetime is read as UTC. The
+grammar puts no bound on delay-seconds, so a value too large for a float comes back as
+`math.inf`: cap it before sleeping (`min(delay, 3600)`). A
 malformed value raises `RetryAfterError` (a `ValueError`), so a bad header never
 slips through as a silent zero; anything but a `str` raises `TypeError`.
 

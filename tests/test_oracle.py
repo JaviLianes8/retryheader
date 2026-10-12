@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime, parsedate_to_datetime
-from http.cookiejar import http2time
+from http import cookiejar
 
 from retryheader import build_retry_after, format_http_date, parse_http_date, parse_retry_after
 
@@ -36,7 +36,8 @@ def test_rfc850_matches_http2time() -> None:
         # http2time places two-digit years within 50 years of the real clock, so it
         # agrees for 1990 to 2060 whatever the current year is, up to 2040.
         if 1990 <= moment.year <= 2060:
-            assert http2time(text) == (moment - EPOCH).total_seconds(), text
+            expected = (moment - EPOCH).total_seconds()
+            assert cookiejar.http2time(text) == expected, text  # type: ignore[attr-defined]
 
 
 def test_asctime_matches_email_utils() -> None:

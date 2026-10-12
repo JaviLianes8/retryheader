@@ -5,10 +5,28 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from types import MappingProxyType
+from typing import Any, NoReturn
 
 ParamValue = int | float | str | bytes | bool | datetime
-_NO_EXTRA: Mapping[str, ParamValue] = MappingProxyType({})
+
+
+class _ReadOnlyDict(dict[str, ParamValue]):
+    """A dict that refuses changes but still pickles, copies and compares like one."""
+
+    def _refuse(self, *args: object, **kwargs: object) -> NoReturn:
+        raise TypeError("extra parameters are read only")
+
+    __setitem__ = __delitem__ = _refuse
+    clear = pop = popitem = setdefault = update = __ior__ = _refuse
+
+    def __hash__(self) -> int:  # type: ignore[override]
+        return hash(frozenset(self.items()))
+
+    def __reduce__(self) -> tuple[Any, ...]:
+        return (type(self), (dict(self),))
+
+
+_NO_EXTRA: Mapping[str, ParamValue] = _ReadOnlyDict()
 
 
 def _check_count(name: str, value: object, *, optional: bool, minimum: int) -> None:
@@ -28,7 +46,7 @@ def _check_common(owner: object, name: object, partition_key: object, extra: obj
     if not isinstance(extra, Mapping):
         raise TypeError("extra must be a mapping")
     # Freeze a private copy so a frozen instance cannot change through the caller's dict.
-    object.__setattr__(owner, "extra", MappingProxyType(dict(extra)))
+    object.__setattr__(owner, "extra", _ReadOnlyDict(extra))
 
 
 @dataclass(frozen=True)

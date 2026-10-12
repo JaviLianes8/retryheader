@@ -9,10 +9,13 @@ _OWS = " \t"
 
 
 def as_utc(moment: datetime) -> datetime:
-    """Return moment as an aware UTC datetime, assuming UTC when it is naive."""
+    """Return moment as aware UTC (naive means UTC); ValueError past year 1 or 9999."""
     if moment.tzinfo is None or moment.utcoffset() is None:
         return moment.replace(tzinfo=timezone.utc)
-    return moment.astimezone(timezone.utc)
+    try:
+        return moment.astimezone(timezone.utc)
+    except OverflowError as exc:
+        raise ValueError(f"datetime has no UTC equivalent in range: {moment!r}") from exc
 
 
 def check_datetime(moment: object) -> None:

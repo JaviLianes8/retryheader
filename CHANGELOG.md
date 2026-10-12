@@ -26,7 +26,9 @@ All notable changes to this project are documented here. The format follows
 - HTTP-dates follow RFC 9110: the RFC 850 two-digit year is placed within 50 years of
   `now` (`Monday, 01-Jan-60` is 2060 in 2026, not 1960), a leap second reads as the
   next second, and a date without a zone is rejected instead of being read as UTC.
-  RFC 5322 dates with an explicit zone are still accepted unless `strict=True`.
+  RFC 5322 dates with an explicit zone are still accepted unless `strict=True`, with
+  the RFC 5322 rule for their two- and three-digit years. A leap second is only
+  accepted at 23:59:60 UTC.
 - `build_retry_after` rounds a fraction of a second up (2.5 gives 3, not 2), for
   numbers and datetimes alike, so a client is never asked to come back early. NaN and
   infinity raise `ValueError`.

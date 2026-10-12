@@ -29,7 +29,10 @@ def build_retry_after(value: int | float | timedelta | datetime) -> str:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise TypeError(f"unsupported Retry-After value: {value!r}")
     if isinstance(value, int):
-        return str(max(0, value))
+        try:
+            return str(max(0, value))
+        except ValueError as exc:  # the interpreter's limit on int to str conversion
+            raise ValueError("Retry-After delay has too many digits to write") from exc
     return _seconds(value)
 
 
