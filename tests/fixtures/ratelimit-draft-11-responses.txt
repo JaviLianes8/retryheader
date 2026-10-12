@@ -1,0 +1,13 @@
+# Copied verbatim from https://www.ietf.org/archive/id/draft-ietf-httpapi-ratelimit-headers-11.txt
+# fetched 2026-10-12: the response headers of examples B.1.4 and B.3, one block each.
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/problem+json
+Date: Mon, 05 Aug 2019 09:27:00 GMT
+Retry-After: Mon, 05 Aug 2019 09:27:05 GMT
+RateLimit: "default";r=0;t=5
+
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 20
+RateLimit-Policy: "dynamic";q=100;w=60
+RateLimit: "dynamic";r=15;t=40
