@@ -6,7 +6,12 @@ Thanks for taking the time. This project keeps a small, predictable shape.
 
 ```
 pip install -r requirements-dev.txt
+python scripts/fetch_upstream.py
 ```
+
+The fetch step is optional: it downloads the third-party test files listed in
+`tests/upstream/MANIFEST.json` (checked against their sha256) into a local folder that
+git ignores. The tests that need them skip until they are there.
 
 ## Before you open a pull request
 

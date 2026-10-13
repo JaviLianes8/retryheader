@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1]
+
+### Changed
+
+- The httpwg structured field test suite is no longer committed. `tests/upstream/MANIFEST.json`
+  pins its files (URL, commit, size, sha256, licence) and `scripts/fetch_upstream.py` fetches
+  them; the full suite skips until then, and a short set of cited vectors always runs.
+- The sdist ships only the sources, tests and docs.
+
 ## [0.2.0]
 
 ### Added
