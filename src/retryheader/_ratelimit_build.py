@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 
+from ._errors import quote, type_name
 from ._ratelimit_types import ParamValue, QuotaPolicy, ServiceLimit
 from ._sf_serialize import serialize_list
 from ._sf_types import BareItem, Date
@@ -18,12 +19,21 @@ def build_ratelimit_policy(policies: Iterable[QuotaPolicy]) -> str:
 
     ``qu`` is only written when it is not the default ``"requests"``. Raises ValueError
     when there is no policy (the field must be non-empty) or a value cannot be
-    represented, TypeError when an item is not a QuotaPolicy.
+    represented in a structured field (a name or string outside printable ASCII, an
+    integer past 15 digits, an invalid parameter name, a date with a fraction of a
+    second), TypeError when an item is not a QuotaPolicy.
+
+    >>> from retryheader import QuotaPolicy, build_ratelimit_policy
+    >>> build_ratelimit_policy([
+    ...     QuotaPolicy("burst", 100, 60),
+    ...     QuotaPolicy("bytes", 65535, 10, unit="content-bytes", partition_key=b"App-999"),
+    ... ])
+    '"burst";q=100;w=60, "bytes";q=65535;qu="content-bytes";w=10;pk=:QXBwLTk5OQ==:'
     """
     members = []
     for policy in policies:
         if not isinstance(policy, QuotaPolicy):
-            raise TypeError(f"expected a QuotaPolicy, not {type(policy).__name__}")
+            raise TypeError(f"expected a QuotaPolicy, not {type_name(policy)}")
         params: dict[str, BareItem] = {"q": policy.quota}
         if policy.unit != "requests":
             params["qu"] = policy.unit
@@ -39,13 +49,20 @@ def build_ratelimit_policy(policies: Iterable[QuotaPolicy]) -> str:
 def build_ratelimit(limits: Iterable[ServiceLimit]) -> str:
     """Render service limits as a RateLimit field value.
 
-    Raises ValueError when a value cannot be represented, TypeError when an item is
-    not a ServiceLimit. No limits give an empty string: omit the field then.
+    Raises ValueError when a value cannot be represented, like
+    ``build_ratelimit_policy``, TypeError when an item is not a ServiceLimit. No limits
+    give an empty string: omit the field then.
+
+    >>> from retryheader import ServiceLimit, build_ratelimit
+    >>> build_ratelimit([ServiceLimit("burst", 0, 30, partition_key=b"user-1")])
+    '"burst";r=0;t=30;pk=:dXNlci0x:'
+    >>> build_ratelimit([])
+    ''
     """
     members = []
     for limit in limits:
         if not isinstance(limit, ServiceLimit):
-            raise TypeError(f"expected a ServiceLimit, not {type(limit).__name__}")
+            raise TypeError(f"expected a ServiceLimit, not {type_name(limit)}")
         params: dict[str, BareItem] = {"r": limit.remaining}
         if limit.window is not None:
             params["t"] = limit.window
@@ -64,7 +81,7 @@ def _common(
         params["pk"] = partition_key
     for key, value in extra.items():
         if key in known:
-            raise ValueError(f"extra parameter {key!r} clashes with a defined parameter")
+            raise ValueError(f"extra parameter {quote(key)} clashes with a defined parameter")
         params[key] = _bare(value)
 
 

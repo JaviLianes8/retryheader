@@ -6,11 +6,11 @@ from collections.abc import Callable, Iterable
 from datetime import datetime, timedelta, timezone
 from typing import TypeVar
 
-from ._errors import RateLimitError
+from ._errors import RateLimitError, quote, type_name
 from ._ratelimit_types import ParamValue, QuotaPolicy, ServiceLimit
 from ._sf import Member, parse_list
 from ._sf_scalars import SFError
-from ._sf_types import BareItem, Date, Token
+from ._sf_types import BareItem, Date, DisplayString, Token
 
 _T = TypeVar("_T")
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
@@ -23,6 +23,13 @@ def parse_ratelimit_policy(value: str | Iterable[str]) -> list[QuotaPolicy]:
     are combined with commas, as RFC 9651 requires). Raises RateLimitError when the
     field is malformed: the draft says such a field MUST be ignored as a whole, so no
     partial result is returned. An empty field is malformed too: it must be non-empty.
+    Raises TypeError when ``value`` is neither a str nor an iterable of str.
+
+    >>> from retryheader import parse_ratelimit_policy
+    >>> for policy in parse_ratelimit_policy('"burst";q=100;w=60, "daily";q=1000'):
+    ...     print(policy.name, policy.quota, policy.window, policy.unit)
+    burst 100 60 requests
+    daily 1000 None requests
     """
     policies = _parse(value, "RateLimit-Policy", _policy)
     if not policies:
@@ -33,8 +40,14 @@ def parse_ratelimit_policy(value: str | Iterable[str]) -> list[QuotaPolicy]:
 def parse_ratelimit(value: str | Iterable[str]) -> list[ServiceLimit]:
     """Parse a RateLimit field into its service limits, in order.
 
-    Accepts the field value or its field lines, like ``parse_ratelimit_policy``.
-    Raises RateLimitError when the field is malformed.
+    Accepts the field value or its field lines, like ``parse_ratelimit_policy``. An empty
+    field has no limits. Raises RateLimitError when the field is malformed, TypeError
+    when ``value`` is neither a str nor an iterable of str.
+
+    >>> from retryheader import parse_ratelimit
+    >>> limits = parse_ratelimit(['"burst";r=0;t=30', '"daily";r=900;pk=:dXNlci0x:'])
+    >>> [(lim.policy, lim.remaining, lim.window, lim.partition_key) for lim in limits]
+    [('burst', 0, 30, None), ('daily', 900, None, b'user-1')]
     """
     return _parse(value, "RateLimit", _limit)
 
@@ -53,24 +66,31 @@ def _parse(
         try:
             out.append(build(name, params))
         except (TypeError, ValueError) as exc:
-            raise RateLimitError(f"malformed {field} item {name!r}: {exc}") from exc
+            raise RateLimitError(f"malformed {field} item {quote(name)}: {exc}") from exc
     return out
 
 
 def _combine(value: str | Iterable[str], field: str) -> str:
     if isinstance(value, str):
-        return value
-    if isinstance(value, (bytes, bytearray)):
-        raise TypeError(f"{field} value must be a str or an iterable of str, not bytes")
+        return str.__str__(value)
+    if isinstance(value, (bytes, bytearray)) or not isinstance(value, Iterable):
+        raise TypeError(
+            f"{field} value must be a str or an iterable of str, not {type_name(value)}"
+        )
     lines = list(value)
     if not all(isinstance(line, str) for line in lines):
         raise TypeError(f"{field} field lines must be str")
-    return ", ".join(lines)
+    return ", ".join(str.__str__(line) for line in lines)
+
+
+def _is_string(value: object) -> bool:
+    # An sf-string, not a Token or Display String, which parse to str subclasses.
+    return isinstance(value, str) and not isinstance(value, (Token, DisplayString))
 
 
 def _named(member: Member, field: str) -> tuple[str, dict[str, BareItem]]:
     value, params = member
-    if isinstance(value, Token) or not isinstance(value, str):
+    if not _is_string(value):
         raise RateLimitError(f"malformed {field} field: each item must be a String")
     return str(value), params
 
@@ -79,7 +99,7 @@ def _policy(name: str, params: dict[str, BareItem]) -> QuotaPolicy:
     if "q" not in params:
         raise ValueError("the q parameter is required")
     unit = params.get("qu", "requests")
-    if isinstance(unit, Token) or not isinstance(unit, str):
+    if not _is_string(unit):
         raise TypeError("qu must be a String")
     return QuotaPolicy(
         name=name,
@@ -130,7 +150,7 @@ def _extra(params: dict[str, BareItem], known: set[str]) -> dict[str, ParamValue
             try:
                 out[key] = _EPOCH + timedelta(seconds=value.seconds)
             except OverflowError as exc:
-                raise ValueError(f"date parameter {key} is out of range") from exc
+                raise ValueError(f"date parameter {quote(key)} is out of range") from exc
         else:
             out[key] = value
     return out

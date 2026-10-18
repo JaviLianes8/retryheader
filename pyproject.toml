@@ -4,16 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "retryheader"
-version = "0.2.1"
+version = "1.0.0"
 description = "Parse and build HTTP Retry-After, HTTP-date, RateLimit and RateLimit-Policy headers, zero dependencies and typed"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
-keywords = ["http", "retry-after", "ratelimit", "rate-limit", "http-date", "headers", "backoff", "rfc9110"]
+keywords = ["http", "retry-after", "ratelimit", "ratelimit-policy", "rate-limit", "http-date", "headers", "backoff", "429", "rfc9110", "rfc9651", "structured-fields"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
@@ -22,6 +22,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Libraries",
     "Typing :: Typed",
@@ -29,11 +30,11 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "build", "twine"]
+dev = ["ruff", "mypy", "pytest", "pytest-timeout", "build", "twine"]
 
 [project.urls]
 Homepage = "https://lianes8studio.com"
-Repository = "https://github.com/JaviLianes8/retryheader"
+Source = "https://github.com/JaviLianes8/retryheader"
 Issues = "https://github.com/JaviLianes8/retryheader/issues"
 Changelog = "https://github.com/JaviLianes8/retryheader/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
@@ -41,7 +42,18 @@ Funding = "https://buymeacoffee.com/jlianesglrs"
 
 [tool.hatch.build.targets.sdist]
 # Third-party test files are fetched locally and never shipped; only their manifest is.
-include = ["src", "tests", "scripts/fetch_upstream.py", "CHANGELOG.md", "CONTRIBUTING.md"]
+include = [
+    "src",
+    "tests",
+    "scripts/fetch_upstream.py",
+    "README.md",
+    "GUIDE.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "pyproject.toml",
+    "requirements-dev.txt",
+]
 exclude = ["**/__pycache__", "tests/upstream/*", "!tests/upstream/MANIFEST.json"]
 
 [tool.hatch.build.targets.wheel]
@@ -62,3 +74,4 @@ strict = true
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-q"
+timeout = 300

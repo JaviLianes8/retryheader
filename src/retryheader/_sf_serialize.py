@@ -5,8 +5,9 @@ from __future__ import annotations
 import base64
 import math
 from collections.abc import Iterable, Mapping
-from decimal import ROUND_HALF_EVEN, Decimal
+from decimal import ROUND_HALF_EVEN, Context, Decimal
 
+from ._errors import number, quote, type_name
 from ._sf_types import BareItem, Date, DisplayString, Token
 
 _KEY_FIRST = frozenset("abcdefghijklmnopqrstuvwxyz*")
@@ -15,6 +16,9 @@ _TCHAR = frozenset(
     "!#$%&'*+-.^_`|~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz:/"
 )
 _MAX_INT = 999_999_999_999_999
+# A private context: the caller's decimal context (precision, traps) must not matter.
+_CONTEXT = Context(prec=40, rounding=ROUND_HALF_EVEN, traps=[])
+_THOUSANDTH = Decimal("0.001")
 
 
 def serialize_list(members: Iterable[tuple[BareItem, Mapping[str, BareItem]]]) -> str:
@@ -33,11 +37,12 @@ def serialize_params(params: Mapping[str, BareItem]) -> str:
 
 
 def serialize_key(key: str) -> str:
-    if not isinstance(key, str) or not key or key[0] not in _KEY_FIRST:
-        raise ValueError(f"invalid structured field key: {key!r}")
-    if any(char not in _KEY_CHARS for char in key):
-        raise ValueError(f"invalid structured field key: {key!r}")
-    return key
+    """Section 4.1.1.3: a key is lcalpha or "*" followed by lcalpha, DIGIT, "_-.*"."""
+    if not isinstance(key, str):
+        raise TypeError(f"a structured field key must be a str, not {type_name(key)}")
+    if not key or key[0] not in _KEY_FIRST or any(char not in _KEY_CHARS for char in key):
+        raise ValueError(f"invalid structured field key: {quote(key)}")
+    return str(key)
 
 
 def serialize_bare(value: BareItem) -> str:
@@ -50,9 +55,9 @@ def serialize_bare(value: BareItem) -> str:
         return _decimal(value)
     if isinstance(value, Token):
         if not value or not (value[0].isascii() and (value[0].isalpha() or value[0] == "*")):
-            raise ValueError(f"invalid token: {value!r}")
+            raise ValueError(f"invalid token: {quote(value)}")
         if any(char not in _TCHAR for char in value):
-            raise ValueError(f"invalid token: {value!r}")
+            raise ValueError(f"invalid token: {quote(value)}")
         return str(value)
     if isinstance(value, DisplayString):
         return _display(value)
@@ -62,31 +67,34 @@ def serialize_bare(value: BareItem) -> str:
         return ":" + base64.b64encode(value).decode("ascii") + ":"
     if isinstance(value, Date):
         return "@" + _integer(value.seconds)
-    raise TypeError(f"cannot serialise {type(value).__name__} as a structured field")
+    raise TypeError(f"cannot serialise {type_name(value)} as a structured field")
 
 
 def _integer(value: int) -> str:
-    if not -_MAX_INT <= value <= _MAX_INT:
-        raise ValueError(f"integer out of structured field range: {value}")
-    return str(value)
+    plain = int.__index__(value)  # an int subclass (an IntEnum) is written as its number
+    if not -_MAX_INT <= plain <= _MAX_INT:
+        raise ValueError(f"integer out of structured field range: {number(plain)}")
+    return str(plain)
 
 
 def _decimal(value: float) -> str:
-    if not math.isfinite(value):
-        raise ValueError(f"decimal must be finite: {value!r}")
+    plain = float.__float__(value)
+    if not math.isfinite(plain) or abs(plain) >= 1e13:
+        raise ValueError(f"decimal out of structured field range: {plain!r}")
     # repr() is the shortest decimal that reads back as this float, so 0.0025 rounds
     # half to even as the decimal 0.0025, not as its binary approximation.
-    exact = Decimal(repr(value)).quantize(Decimal("0.001"), rounding=ROUND_HALF_EVEN)
-    whole, _, fraction = f"{abs(exact):f}".partition(".")
+    exact = Decimal(repr(plain)).quantize(_THOUSANDTH, context=_CONTEXT)
+    whole, _, fraction = f"{exact.copy_abs():f}".partition(".")  # copy_abs: no context
     if len(whole) > 12:
-        raise ValueError(f"decimal out of structured field range: {value!r}")
+        raise ValueError(f"decimal out of structured field range: {plain!r}")
     sign = "-" if exact < 0 else ""
     return f"{sign}{whole}.{fraction.rstrip('0') or '0'}"
 
 
 def _string(value: str) -> str:
+    value = str.__str__(value)  # a str subclass cannot change how it is escaped
     if any(not " " <= char <= "~" for char in value):
-        raise ValueError(f"strings hold printable ASCII only: {value!r}")
+        raise ValueError(f"strings hold printable ASCII only: {quote(value)}")
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 

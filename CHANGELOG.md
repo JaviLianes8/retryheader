@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-18
+
+The public API is now stable: the thirteen names in `retryheader.__all__`, their
+signatures, defaults and error types follow Semantic Versioning from this release on.
+
+### Fixed
+
+- `import retryheader` failed on Python 3.10 with `ValueError: mutable default ... for
+  field extra` (0.2.1 declared support for 3.10 but was never run on it).
+
 ## [0.2.1]
 
 ### Changed
