@@ -5,15 +5,38 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from retryheader import RetryAfterError, format_http_date, parse_http_date
-from tests.fixtures_text import rfc9110_dates
+from tests.fixtures_text import CITED_DATES, rfc9110_dates
 
 NOW = datetime(2026, 10, 21, 7, 28, 0, tzinfo=timezone.utc)
 EXAMPLE = datetime(1994, 11, 6, 8, 49, 37, tzinfo=timezone.utc)
 
 
-@pytest.mark.parametrize("text", rfc9110_dates())
+@pytest.mark.parametrize("text", CITED_DATES)
 def test_every_rfc9110_example_format_parses_to_the_same_moment(text: str) -> None:
     assert parse_http_date(text, now=NOW, strict=True) == EXAMPLE
+
+
+def test_the_examples_in_the_fetched_rfc_are_the_cited_ones() -> None:
+    assert rfc9110_dates() == CITED_DATES
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Mon, 06 Nov 1994 08:49:37 GMT",
+        "Monday, 06-Nov-94 08:49:37 GMT",
+        "Sat Nov  6 08:49:37 1994",
+    ],
+)
+def test_strict_mode_requires_the_day_name_of_the_date(text: str) -> None:
+    assert parse_http_date(text, now=NOW) == EXAMPLE
+    with pytest.raises(RetryAfterError, match="day name does not match"):
+        parse_http_date(text, now=NOW, strict=True)
+
+
+def test_the_day_name_of_a_leap_second_is_the_written_day() -> None:
+    parsed = parse_http_date("Thu, 31 Dec 2026 23:59:60 GMT", strict=True)
+    assert parsed == datetime(2027, 1, 1, tzinfo=timezone.utc)
 
 
 def test_the_result_is_aware_utc() -> None:
@@ -80,6 +103,7 @@ def test_impossible_dates_are_rejected(text: str) -> None:
         "Sun, 06 Nov 1994 08:49:37 UTC",
         "Sun, 06 Nov 1994 03:49:37 EST",
         "06 Nov 1994 08:49:37 GMT",
+        "Sun, 06 Nov 1994 08:49:37GMT",
     ],
 )
 def test_lenient_mode_accepts_dates_with_an_explicit_zone(text: str) -> None:
@@ -137,3 +161,7 @@ def test_format_pads_years_to_four_digits() -> None:
 def test_format_rejects_non_datetimes() -> None:
     with pytest.raises(TypeError):
         format_http_date("2026-10-21")  # type: ignore[arg-type]
+
+
+def test_lenient_seconds_are_optional_and_zero() -> None:
+    assert parse_http_date("Sun, 06 Nov 1994 08:49 GMT") == EXAMPLE.replace(second=0)

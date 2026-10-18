@@ -6,12 +6,12 @@ every change listed here is a change against the PyPI release.
 
 Progress:
 - [x] Branch `release/1.0.0` created from `main` (37aa903, same code as PyPI 0.2.1)
-- [ ] Baseline gates on 0.2.1
-- [ ] Ground truth fetched live (item 7)
-- [ ] API review and 1.0.0 changes (item 1)
-- [ ] Errors, typing, docstrings and doctests (items 2 to 5)
-- [ ] Contract, oracle, fuzz and hostile tests (items 6, 7, 9)
-- [ ] Docs: README, GUIDE, CHANGELOG (items 11, 12)
+- [x] Baseline gates on 0.2.1
+- [x] Ground truth fetched live (item 7)
+- [x] API review and 1.0.0 changes (item 1)
+- [x] Errors, typing, docstrings and doctests (items 2 to 5)
+- [x] Contract, oracle, fuzz and hostile tests (items 6, 7, 9)
+- [x] Docs: README, GUIDE, CHANGELOG (items 11, 12)
 - [ ] Packaging, e2e and upgrade from PyPI 0.2.1, every Python (items 8, 10, 13, 14)
 - [ ] Author mutation round (item 18)
 - [ ] Gates (item 15)

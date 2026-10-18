@@ -12,21 +12,36 @@ from retryheader import (
     parse_ratelimit,
     parse_ratelimit_policy,
 )
-from tests.fixtures_text import draft_fields
+from tests.fixtures_text import CITED_LIMITS, CITED_POLICIES, draft_fields
 
 
-@pytest.mark.parametrize("value", draft_fields("RateLimit-Policy"))
-def test_draft_policies_round_trip(value: str) -> None:
+def _round_trip_policies(value: str) -> None:
     policies = parse_ratelimit_policy(value)
     assert parse_ratelimit_policy(build_ratelimit_policy(policies)) == policies
 
 
-@pytest.mark.parametrize("value", draft_fields("RateLimit"))
-def test_draft_limits_round_trip(value: str) -> None:
+def _round_trip_limits(value: str) -> None:
     limits = parse_ratelimit(value)
     rebuilt = parse_ratelimit(build_ratelimit(limits))
     assert rebuilt == limits
     assert [dict(lim.extra) for lim in rebuilt] == [dict(lim.extra) for lim in limits]
+
+
+@pytest.mark.parametrize("value", CITED_POLICIES)
+def test_cited_policies_round_trip(value: str) -> None:
+    _round_trip_policies(value)
+
+
+@pytest.mark.parametrize("value", CITED_LIMITS)
+def test_cited_limits_round_trip(value: str) -> None:
+    _round_trip_limits(value)
+
+
+def test_every_example_of_the_fetched_draft_round_trips() -> None:
+    for value in draft_fields("RateLimit-Policy"):
+        _round_trip_policies(value)
+    for value in draft_fields("RateLimit"):
+        _round_trip_limits(value)
 
 
 def test_build_policy_text() -> None:
@@ -60,7 +75,9 @@ def test_a_policy_field_needs_a_policy() -> None:
     [
         {"q": 1},
         {"Bad": 1},
+        {"": 1},
         {"x": float("nan")},
+        {"x": 1e13},
         {"x": 10**15},
         {"x": "café"},
         {"x": datetime(2026, 1, 1, 0, 0, 0, 1, tzinfo=timezone.utc)},
@@ -69,6 +86,12 @@ def test_a_policy_field_needs_a_policy() -> None:
 def test_unrepresentable_extra_parameters_are_rejected(extra: dict[str, object]) -> None:
     with pytest.raises(ValueError):
         build_ratelimit_policy([QuotaPolicy("a", 1, extra=extra)])  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("extra", [{1: 1}, {"x": [1]}, {"x": None}, {"x": bytearray(b"x")}])
+def test_extra_parameters_of_the_wrong_type_are_refused_on_creation(extra: object) -> None:
+    with pytest.raises(TypeError):
+        ServiceLimit("a", 1, extra=extra)  # type: ignore[arg-type]
 
 
 def test_unrepresentable_names_are_rejected() -> None:

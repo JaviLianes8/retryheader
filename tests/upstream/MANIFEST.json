@@ -35,6 +35,15 @@
     "sha256": "819283e6992e3040c377417c2a2e2e7bff3aa480eb2f1a9db66b27c865529169",
     "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
   },
+  "draft-ietf-httpapi-ratelimit-headers-11.txt": {
+    "title": "RateLimit header fields for HTTP, draft-ietf-httpapi-ratelimit-headers-11 (23 May 2026)",
+    "url": "https://www.ietf.org/archive/id/draft-ietf-httpapi-ratelimit-headers-11.txt",
+    "revision": "revision -11, the latest on the datatracker on 2026-10-18",
+    "fetched": "2026-10-18",
+    "size": 67097,
+    "sha256": "d6016dd0db5a33ba3f1e6b6f4c84e9b5ecc00986822d5212bab831f6c2d1d412",
+    "licence": "IETF Trust Legal Provisions (BCP 78), see the copyright notice in the file; code components under the Revised BSD License"
+  },
   "examples.json": {
     "title": "httpwg structured-field-tests: examples.json",
     "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/examples.json",
@@ -60,6 +69,15 @@
     "fetched": "2026-10-13",
     "size": 149773,
     "sha256": "7cf177687eadfa15e8aafe158788348e067dbadc675987823a2a08a414ebeafc",
+    "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "large-generated.json": {
+    "title": "httpwg structured-field-tests: large-generated.json",
+    "url": "https://raw.githubusercontent.com/httpwg/structured-field-tests/781ba38464b2ec4c547e1e14d007d4f5ace7457e/large-generated.json",
+    "revision": "commit 781ba38464b2ec4c547e1e14d007d4f5ace7457e",
+    "fetched": "2026-10-18",
+    "size": 727664,
+    "sha256": "ade790e9425083bb8e8f5082a6c0b7565877feefdd59d37ed76b4dbfab14d3c4",
     "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
   },
   "LICENSE.md": {
@@ -124,6 +142,42 @@
     "size": 1022,
     "sha256": "fde5860376f2be0d2d497fb2e2c5a36ee2bdace0ecfc511ba474ec14e6852321",
     "licence": "BSD-3-Clause, (c) IETF Trust and the authors (LICENSE.md of the suite)"
+  },
+  "rfc5322-erratum-6639.html": {
+    "title": "RFC Errata, Erratum ID 6639 (RFC 5322 section 3.3, Verified)",
+    "url": "https://www.rfc-editor.org/errata/eid6639",
+    "revision": "erratum 6639 as published on the RFC Editor site",
+    "fetched": "2026-10-18",
+    "size": 7949,
+    "sha256": "0eb7d32821bc74b0f17adbce9f5b5a349502e05a651c3e5f64c9a3363e2fc900",
+    "licence": "RFC Editor errata page; IETF Trust Legal Provisions (BCP 78)"
+  },
+  "rfc5322.txt": {
+    "title": "RFC 5322, Internet Message Format (October 2008)",
+    "url": "https://www.rfc-editor.org/rfc/rfc5322.txt",
+    "revision": "RFC 5322 as published",
+    "fetched": "2026-10-18",
+    "size": 122322,
+    "sha256": "cb459acca15a2aa895863eaeff6f1d5b9c4ca15578ae3e3706f757787a385969",
+    "licence": "IETF Trust Legal Provisions (BCP 78), see the copyright notice in the file; code components under the Revised BSD License"
+  },
+  "rfc9110.txt": {
+    "title": "RFC 9110, HTTP Semantics (June 2022)",
+    "url": "https://www.rfc-editor.org/rfc/rfc9110.txt",
+    "revision": "RFC 9110 as published",
+    "fetched": "2026-10-18",
+    "size": 502941,
+    "sha256": "21c1cdce6ab0e5509b04d84a28000836c7a087cf786efe6f04877ebfff47232a",
+    "licence": "IETF Trust Legal Provisions (BCP 78), see the copyright notice in the file; code components under the Revised BSD License"
+  },
+  "rfc9651.txt": {
+    "title": "RFC 9651, Structured Field Values for HTTP (September 2024)",
+    "url": "https://www.rfc-editor.org/rfc/rfc9651.txt",
+    "revision": "RFC 9651 as published",
+    "fetched": "2026-10-18",
+    "size": 74086,
+    "sha256": "fe27f2ec8819911afbe4bd11f6fcb947580da4c49e5423a1fff960e252ced26d",
+    "licence": "IETF Trust Legal Provisions (BCP 78), see the copyright notice in the file; code components under the Revised BSD License"
   },
   "serialisation-tests/key-generated.json": {
     "title": "httpwg structured-field-tests: serialisation-tests/key-generated.json",
