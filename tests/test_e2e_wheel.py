@@ -51,7 +51,10 @@ def test_wheel_and_sdist_contents(dist: Path) -> None:
     assert any(name.endswith(".dist-info/licenses/LICENSE") for name in names)
     assert all(name.startswith(("retryheader/", "retryheader-1.0.0.dist-info/")) for name in names)
     metadata = zipfile.ZipFile(wheel).read("retryheader-1.0.0.dist-info/METADATA").decode()
-    assert "Requires-Dist" not in metadata and "Requires-Python: >=3.10" in metadata
+    # No runtime dependency: every requirement belongs to the dev extra.
+    requires = [line for line in metadata.splitlines() if line.startswith("Requires-Dist:")]
+    assert requires and all("extra ==" in line for line in requires), requires
+    assert "Requires-Python: >=3.10" in metadata
     assert "Classifier: Development Status :: 5 - Production/Stable" in metadata
     (sdist,) = dist.glob("retryheader-1.0.0.tar.gz")
     with tarfile.open(sdist) as archive:

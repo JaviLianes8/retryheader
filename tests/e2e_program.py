@@ -13,7 +13,7 @@ from retryheader import *
 
 assert "site-packages" in retryheader.__file__, retryheader.__file__
 assert importlib.metadata.version("retryheader") == retryheader.__version__ == "1.0.0"
-assert importlib.metadata.requires("retryheader") is None
+assert all("extra ==" in r for r in importlib.metadata.requires("retryheader") or [])
 assert importlib.resources.files("retryheader").joinpath("py.typed").is_file()
 assert sorted(n for n in dir(retryheader) if not n.startswith("_")) == sorted(retryheader.__all__)
 
