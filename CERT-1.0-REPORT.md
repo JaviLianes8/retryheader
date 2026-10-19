@@ -132,9 +132,21 @@ both, checked against each mutant. The table is in
   fetch script; no scratch files, no process notes. `twine check --strict` PASSED for both.
 - Every interpreter on this PC from `requires-python` up, on another machine: the wheel
   installed in a fresh venv and the sdist's own suite run with `src` removed (fetched
-  sources, oracles and the 0.2.1 oracle present). Results are under Gates. 3.8 and 3.9 are
-  below `requires-python`; 3.13t is not installed here.
+  sources, oracles and the 0.2.1 oracle present). 3.8 and 3.9 are below
+  `requires-python`; 3.13t is not installed here.
+
+At cb676fa: CPython 3.10.19 2580 passed and 6 skipped (the three e2e tests, which need
+the source tree and run separately, and the three 0.2.1 oracle tests, since 0.2.1 never
+imported on 3.10); 3.11.14, 3.12.12, 3.13.11, 3.14.2 and 3.14.2 free-threaded 2583 passed
+and 3 skipped each (the e2e tests). Each run imported the installed 1.0.0 from
+`site-packages`.
 
 ## Gates (item 15)
 
-Recorded after the final run.
+At cb676fa on another machine from a fresh clone, CPython 3.14.2, each command on its own,
+with the fetched sources, http-sf, werkzeug, urllib3, httpx, requests, multidict, the 0.2.1
+oracle, `RETRYHEADER_E2E=1` and `RETRYHEADER_E2E_PYPI=1`: `ruff format --check .`,
+`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` (2586 passed,
+no skips) all exit 0. The e2e tests built the wheel and sdist, inspected both, installed
+the wheel in a fresh venv and drove it from an empty folder, and installed 0.2.1 from PyPI,
+upgraded it in place and compared the answers and the pickles both ways.
