@@ -24,6 +24,7 @@ Progress:
 - [x] Interpreter matrix run again at cc51284
 - [x] QA lenses round 6 (b, c, e): every finding fixed (10eff2a), nothing disputed
 - [x] QA round 7 (lens e re-check): every finding fixed (2694e2a), nothing disputed
+- [x] QA round 8 (lens e re-check): every finding fixed (ba7138d), nothing disputed
 - [ ] QA lenses re-verification (item 19) and independent review (item 16)
 
 ## Scorecard
@@ -48,7 +49,7 @@ Progress:
 | 16 | Independent reviewer | pending |
 | 17 | PR and trace guard | PR #4 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 38 mutants, 36 killed at once, 2 survivors killed by contracts added in 7310f6d |
-| 19 | Five independent QA lenses | rounds 1 to 7 findings fixed; lens a PASS at f51bc1e (source, GUIDE and CHANGELOG changed in round 6); b, c, d and e re-verification pending |
+| 19 | Five independent QA lenses | rounds 1 to 8 findings fixed; lens a PASS at f51bc1e (source, GUIDE and CHANGELOG changed in round 6); b, c, d and e re-verification pending |
 
 ## Baseline on 0.2.1 (before any change)
 
@@ -404,5 +405,28 @@ http-sf, werkzeug, urllib3, httpx, requests, multidict, pydantic, the 0.2.1 orac
 exit 0.
 
 ### Disputed findings (round 7)
+
+None.
+
+## QA round 8 (item 19)
+
+Lens e re-checked 3ce8e68 with ten new mutants on `_ReadOnlyDict`. All three round 7
+findings are fixed (each re-mutation fails the new contracts) and nine of the ten new
+mutants were killed. One finding, a gap in the contracts and not a behaviour bug, is fixed
+in ba7138d and nothing is disputed. No behaviour changed, so the CHANGELOG and GUIDE are
+unchanged.
+
+| Finding | Fix | Pinned by |
+| --- | --- | --- |
+| e-P3 `__ne__` returning `not equal` even when `__eq__` gives `NotImplemented` survived, although it makes `extra != 5` False (with a DeprecationWarning on 3.13, a TypeError on 3.14) | contract with warnings as errors: on a built and a parsed `ServiceLimit` and a built and a parsed `QuotaPolicy`, `extra` differs from an int, `None`, a str, a list of pairs and a `ServiceLimit`, both ways, `==` is False both ways, and `extra.__eq__` and `extra.__ne__` return `NotImplemented` for them like a dict does | `test_extra_differs_from_anything_not_a_mapping` (20 cases) |
+
+The mutant, applied alone to `_extra.py` on CPython 3.13, fails the new contract; on
+3ce8e68 the contract passes, as expected for a missing contract.
+
+Gates on ba7138d, a fresh clone on another machine, CPython 3.14: `ruff format --check .`,
+`ruff check .`, `mypy --strict src` and `pytest` all exit 0; `mypy --strict` is also clean
+on the new test file.
+
+### Disputed findings (round 8)
 
 None.
