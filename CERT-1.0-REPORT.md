@@ -20,6 +20,8 @@ Progress:
 - [x] QA lenses round 2 (a, e): every finding fixed (f26a4c8), nothing disputed
 - [x] QA lenses round 3 (a, e): every finding fixed (7be512e), nothing disputed
 - [x] QA lenses round 4 (e): every finding fixed (9640c0b), nothing disputed
+- [x] QA lenses round 5 (e): every finding fixed (1fe199e), nothing disputed
+- [x] Interpreter matrix run again at cc51284
 - [ ] QA lenses re-verification (item 19) and independent review (item 16)
 
 ## Scorecard
@@ -35,7 +37,7 @@ Progress:
 | 7 | Real ground truth | PASS: RFC 9110, RFC 5322 with erratum 6639, RFC 9651, draft -11 and the httpwg suite fetched with a hash manifest; http-sf, werkzeug, urllib3, `email.utils`, `http.cookiejar`, real client header objects, express-rate-limit output, PyPI 0.2.1 |
 | 8 | Real e2e from the wheel | PASS: installed wheel driven from an empty folder with `-I` and a real local HTTP exchange; upgrade in place from PyPI 0.2.1; no CLI to drive |
 | 9 | Seeded fuzz, no crash, hang or blowup | PASS |
-| 10 | Supported Pythons | PASS: CPython 3.10.19, 3.11.14, 3.12.12, 3.13.11, 3.14.2, 3.14.2t |
+| 10 | Supported Pythons | PASS: CPython 3.10.19, 3.11.14, 3.12.12, 3.13.11, 3.14.2, 3.14.2t, run again at cc51284 |
 | 11 | README and `twine check` | PASS: `twine check --strict` PASSED, absolute links tested |
 | 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-10-19 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS: 3.10 to 3.14, MIT, Homepage/Source/Issues/Changelog, keywords, `dependencies = []` |
@@ -44,7 +46,7 @@ Progress:
 | 16 | Independent reviewer | pending |
 | 17 | PR and trace guard | PR #4 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 38 mutants, 36 killed at once, 2 survivors killed by contracts added in 7310f6d |
-| 19 | Five independent QA lenses | round 1 to 4 findings fixed (see QA rounds 1 to 4), re-verification pending |
+| 19 | Five independent QA lenses | rounds 1 to 5 findings fixed; lens a PASS at f51bc1e (no source or docs change since); b, c, d and e re-verification pending |
 
 ## Baseline on 0.2.1 (before any change)
 
@@ -144,6 +146,13 @@ At cb676fa: CPython 3.10.19 2580 passed and 6 skipped (the three e2e tests, whic
 the source tree and run separately, and the three 0.2.1 oracle tests, since 0.2.1 never
 imported on 3.10); 3.11.14, 3.12.12, 3.13.11, 3.14.2 and 3.14.2 free-threaded 2583 passed
 and 3 skipped each (the e2e tests). Each run imported the installed 1.0.0 from
+`site-packages`.
+
+Run again at cc51284, after the QA rounds, with pydantic added to the oracles: the wheel
+and sdist built, `twine check --strict` PASSED for both, the contents as above. CPython
+3.10.19 2659 passed and 6 skipped (the three e2e tests and the three 0.2.1 oracle tests);
+3.11.14, 3.12.12, 3.13.11, 3.14.2 and 3.14.2 free-threaded 2662 passed and 3 skipped each
+(the e2e tests, which the gates run). Each run imported the installed 1.0.0 from
 `site-packages`.
 
 ## Gates (item 15)
@@ -313,3 +322,10 @@ serialiser and public type contracts (1112 tests) also pass with `TZ=UTC0`.
 ### Disputed findings (round 5)
 
 None.
+
+## Lens a re-check (item 19)
+
+Lens a re-ran on f51bc1e: N2 confirmed fixed, about 30 new probes, every README and GUIDE
+example executed on CPython 3.10, 3.13 and 3.14 with the outputs shown, no finding.
+Verdict: PASS. Since then only tests and this report changed; no source, README, GUIDE or
+CHANGELOG change.
