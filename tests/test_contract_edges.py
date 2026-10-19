@@ -116,3 +116,13 @@ def test_a_leap_second_outside_the_end_of_a_utc_day_says_so() -> None:
         parse_http_date("Sun, 06 Nov 1994 12:30:60 GMT")
     with pytest.raises(RetryAfterError, match="impossible date"):
         parse_http_date("Fri, 31 Dec 9999 23:59:60 GMT")
+
+
+@pytest.mark.parametrize("size", [40, 41, 4000])
+def test_messages_quote_at_most_forty_characters_of_the_input(size: int) -> None:
+    text = "x" * size
+    with pytest.raises(RetryAfterError) as caught:
+        parse_retry_after(text)
+    shown = f"'{'x' * min(size, 40)}'"
+    tail = "" if size <= 40 else f"... ({size} characters)"
+    assert str(caught.value) == f"invalid Retry-After value: {shown}{tail}"

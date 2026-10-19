@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timezone
 
 import pytest
@@ -168,3 +169,19 @@ def test_non_text_input_is_a_type_error(value: object) -> None:
         parse_ratelimit(value)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
         parse_ratelimit_policy(value)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("parse", "value", "key"),
+    [
+        (parse_ratelimit, '"a";r=?0', "r"),
+        (parse_ratelimit, '"a";r=1;t=?1', "t"),
+        (parse_ratelimit_policy, '"a";q=?1', "q"),
+        (parse_ratelimit_policy, '"a";q=1;w=?1', "w"),
+    ],
+)
+def test_a_boolean_is_not_an_integer_parameter(
+    parse: Callable[[str], object], value: str, key: str
+) -> None:
+    with pytest.raises(RateLimitError, match=f"item 'a': {key} must be an Integer$"):
+        parse(value)
