@@ -22,6 +22,7 @@ Progress:
 - [x] QA lenses round 4 (e): every finding fixed (9640c0b), nothing disputed
 - [x] QA lenses round 5 (e): every finding fixed (1fe199e), nothing disputed
 - [x] Interpreter matrix run again at cc51284
+- [x] QA lenses round 6 (b, c, e): every finding fixed (10eff2a), nothing disputed
 - [ ] QA lenses re-verification (item 19) and independent review (item 16)
 
 ## Scorecard
@@ -46,7 +47,7 @@ Progress:
 | 16 | Independent reviewer | pending |
 | 17 | PR and trace guard | PR #4 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 38 mutants, 36 killed at once, 2 survivors killed by contracts added in 7310f6d |
-| 19 | Five independent QA lenses | rounds 1 to 5 findings fixed; lens a PASS at f51bc1e (no source or docs change since); b, c, d and e re-verification pending |
+| 19 | Five independent QA lenses | rounds 1 to 6 findings fixed; lens a PASS at f51bc1e (source, GUIDE and CHANGELOG changed in round 6); b, c, d and e re-verification pending |
 
 ## Baseline on 0.2.1 (before any change)
 
@@ -329,3 +330,48 @@ Lens a re-ran on f51bc1e: N2 confirmed fixed, about 30 new probes, every README 
 example executed on CPython 3.10, 3.13 and 3.14 with the outputs shown, no finding.
 Verdict: PASS. Since then only tests and this report changed; no source, README, GUIDE or
 CHANGELOG change.
+
+## QA round 6 (item 19)
+
+Lenses b, c and e ran on 1ee9bdd. Lens b re-derived every result from the fetched sources
+and independent implementations (httpwg suite, 360k generated structured fields, 450k
+HTTP-dates against its own RFC 9110 parser, 160k RFC 5322 dates, the builders against
+`email.utils`, wsgiref and http-sf, 102 cases cut from the specifications, a real
+express-rate-limit server) and reported one low finding. Lens c ran about 450 hostile
+probes, 45 scaling shapes up to 1e6 and 1.8M seeded fuzz iterations with no failure and
+reported three low findings. Lens e reported eight surviving mutants. All twelve are fixed
+in 10eff2a, and nothing is disputed.
+
+| Finding | Fix | Pinned by |
+| --- | --- | --- |
+| b-F1 a float `extra` rounds as its `repr`, not its binary value, unlike http-sf (`0.1235` gives `0.124`, http-sf `0.123`) | kept and documented, the alternative the finding offers: the httpwg serialisation tests (`serialisation-tests/number.json`, commit 781ba38) require `0.0025` to give `0.002` and `9.9995` to give `10.0`; rounding the binary value gives `0.003` and `9.999` (run here: http-sf 1.4.0 writes `0.003`, `-0.003` and `9.999`, so it fails three of those five vectors). The GUIDE and the `QuotaPolicy` docstring now state the rule, the vectors and the difference from http-sf | `test_a_float_rounds_as_its_repr_half_to_even` (`0.0025`, `-0.0025`, `0.0015`, `9.9995`, `0.1235`, `0.0005`, `-649356.5595`, `0.12351`) |
+| c-C1 `extra` equality ignored the structured-field type (`k`, `k=1` and `k=1.0` equal, one entry in a set, three wire forms) | two `extra` mappings compare and hash by (name, exact type, value); a plain dict still compares by value. CHANGELOG (Changed) and GUIDE upgrade notes | `test_limits_differing_in_an_extra_type_are_not_equal`, `test_extra_hash_follows_the_type`, `test_limits_with_the_same_typed_extra_are_equal`, `test_extra_still_compares_with_a_plain_dict_by_value` |
+| c-C2 `extra.__init__(...)` changed a frozen, hashed value in place | `__init__` refuses once the mapping is built (`TypeError: extra parameters are read only`). CHANGELOG (Fixed) | `test_extra_cannot_be_reinitialised`, `test_a_fresh_extra_mapping_still_builds` |
+| c-C3 an `email.message.Message` with 8-bit bytes in any field made `delay_from_headers` raise `TypeError` (compat32 gives an `email.header.Header`) | such a value is read as its text; every other non-`str` value is still a `TypeError`. CHANGELOG (Fixed), GUIDE | `test_an_email_message_with_8bit_bytes_in_another_field_is_read`, `test_an_8bit_retry_after_in_an_email_message_is_ignored` |
+| e-F1 (C10) `OverflowError` dropped from `assemble` survives | contract: a zone shift past year 1 or 9999 is `RetryAfterError`, and `None` from `delay_from_headers` | `test_a_zone_shift_past_the_calendar_is_a_retry_after_error` |
+| e-F2 (H08) `re.IGNORECASE` dropped from the default mode survives | contract: RFC 850, asctime and IMF-fixdate in other letter cases read in the default mode | `test_the_default_mode_reads_any_letter_case` |
+| e-F3 (H13) a short day name in the strict RFC 850 form survives | contract: strict mode rejects it, and the other letter cases | `test_strict_mode_rejects_a_short_rfc850_day_and_other_cases` |
+| e-F4 (D12) `continue` to `break` on an invalid Retry-After line survives | contract: an invalid line before a valid one | `test_an_invalid_retry_after_line_never_hides_a_later_valid_one` |
+| e-F5 (D17) truthiness instead of `is not None` on the window survives | contract: `r=0;t=0` gives `0.0` | `test_an_exhausted_limit_with_a_zero_window_waits_zero` |
+| e-F6 (D11) the Date header resolved against the wall clock survives | contract: a two-digit Date year resolved against `now` in 2100 | `test_the_date_header_resolves_two_digit_years_against_now` |
+| e-F7 (N07) the ASCII check of the structured field parser survives | contract: non-ASCII in a token, a key, a name, a string, at top level and a non-ASCII digit raise `RateLimitError`, and the field is ignored by `delay_from_headers` | `test_non_ascii_text_makes_a_ratelimit_field_malformed`, `test_a_malformed_non_ascii_ratelimit_field_is_ignored` |
+| e-F8 (D15, Y14, Y17) the three type guards' messages were unpinned | contract: the exact messages, matched in full | `test_type_guards_say_what_is_wrong` |
+
+The `extra` mapping and its value checks moved from `_ratelimit_types.py` to a new private
+module `_extra.py` (the first would have passed 200 lines); no public name changed.
+
+Each reported mutant, applied alone to a copy of the tree, fails the new contracts: C10,
+H08, H13, D12, D17, D11, N07, D15, Y14 and Y17 as lens e described them, plus the three
+fixes of this round reverted one at a time (C1, C2, C3). Before the fixes the new
+contracts failed on 1ee9bdd for C1, C2 and C3 (18 failures) and passed for the rest.
+
+Gates on 10eff2a's tree on another machine from a fresh clone, CPython 3.14, with the
+fetched sources, http-sf, werkzeug, urllib3, httpx, requests, multidict, pydantic, the
+0.2.1 oracle, `RETRYHEADER_E2E=1` and `RETRYHEADER_E2E_PYPI=1`: `ruff format --check .`,
+`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` (2720 passed)
+all exit 0.
+
+### Disputed findings (round 6)
+
+None. b-F1 is fixed by documenting the rounding rule, the second fix the finding offers,
+because changing it would break the httpwg serialisation vectors (evidence above).
