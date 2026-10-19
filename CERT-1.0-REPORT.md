@@ -23,6 +23,7 @@ Progress:
 - [x] QA lenses round 5 (e): every finding fixed (1fe199e), nothing disputed
 - [x] Interpreter matrix run again at cc51284
 - [x] QA lenses round 6 (b, c, e): every finding fixed (10eff2a), nothing disputed
+- [x] QA round 7 (lens e re-check): every finding fixed (2694e2a), nothing disputed
 - [ ] QA lenses re-verification (item 19) and independent review (item 16)
 
 ## Scorecard
@@ -47,7 +48,7 @@ Progress:
 | 16 | Independent reviewer | pending |
 | 17 | PR and trace guard | PR #4 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 38 mutants, 36 killed at once, 2 survivors killed by contracts added in 7310f6d |
-| 19 | Five independent QA lenses | rounds 1 to 6 findings fixed; lens a PASS at f51bc1e (source, GUIDE and CHANGELOG changed in round 6); b, c, d and e re-verification pending |
+| 19 | Five independent QA lenses | rounds 1 to 7 findings fixed; lens a PASS at f51bc1e (source, GUIDE and CHANGELOG changed in round 6); b, c, d and e re-verification pending |
 
 ## Baseline on 0.2.1 (before any change)
 
@@ -375,3 +376,33 @@ all exit 0.
 
 None. b-F1 is fixed by documenting the rounding rule, the second fix the finding offers,
 because changing it would break the httpwg serialisation vectors (evidence above).
+
+## QA round 7 (item 19)
+
+Lens e re-checked 436b63b with its own mutation round and reported three findings, all
+gaps in the contracts on the `extra` mapping, none a behaviour bug. All three are fixed
+in 2694e2a by a new contract file, `tests/test_contract_extra_mapping.py`, and nothing is
+disputed. No behaviour changed, so the CHANGELOG is unchanged; the GUIDE now states the
+dict-subclass equality and the pickling of `extra` that the new contracts pin.
+
+| Finding | Fix | Pinned by |
+| --- | --- | --- |
+| e-G1 (X04, X06, X08, X09, X10) only `__setitem__`, `update` and `clear` were pinned as refused; dropping the refusal of `__delitem__`, `pop`, `popitem`, `setdefault` or `__ior__` survived | contract over every mutating dict method (`[]=`, `del`, `pop` with and without a default, `popitem`, `setdefault` on a new and an existing key, `update`, `clear`, `\|=`) on a built and a parsed `ServiceLimit` and a built and a parsed `QuotaPolicy`: each raises `TypeError: extra parameters are read only` and leaves `extra`, and the item's place in a set, unchanged | `test_every_mutating_dict_method_is_refused` (40 cases) |
+| e-G2 (X16) dropping `_ReadOnlyDict.__reduce__` survived | contract: `extra` itself pickles under every protocol, copies and deep-copies to the same read-only type, equal and with the same hash, and the copy still refuses changes | `test_extra_pickles_copies_and_stays_read_only` |
+| e-G3 (X13) equality with a dict that is not an exact `dict` was unpinned | the GUIDE promise kept and pinned: `extra` equals a `dict`, `Counter`, `OrderedDict` and `defaultdict` with the same items, both ways and with `!=`, and differs from each once a value changes | `test_extra_compares_by_value_with_any_dict` |
+
+Each reported mutant, applied alone to `_extra.py`, fails the new contracts: the refusal of
+`__delitem__`, `pop`, `popitem`, `setdefault` and `__ior__` dropped one at a time,
+`__reduce__` removed, and the plain-dict branch of `__eq__` returning `NotImplemented` for
+anything but an exact `dict`. On 436b63b the new contracts pass, as expected for missing
+contracts.
+
+Gates on 2694e2a's tree on another machine, CPython 3.14, with the fetched sources,
+http-sf, werkzeug, urllib3, httpx, requests, multidict, pydantic, the 0.2.1 oracle,
+`RETRYHEADER_E2E=1` and `RETRYHEADER_E2E_PYPI=1`: `ruff format --check .`, `ruff check .`,
+`mypy --strict src`, `mypy --strict src tests` and `pytest` (2780 passed, no skips) all
+exit 0.
+
+### Disputed findings (round 7)
+
+None.
