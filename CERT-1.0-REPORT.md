@@ -17,6 +17,7 @@ Progress:
 - [x] Gates (item 15)
 - [x] PR #4 and trace guard CLEAN
 - [x] QA lenses round 1: every finding fixed (0f47628, 2d5f019), nothing disputed
+- [x] QA lenses round 2 (a, e): every finding fixed (f26a4c8), nothing disputed
 - [ ] QA lenses re-verification (item 19) and independent review (item 16)
 
 ## Scorecard
@@ -41,7 +42,7 @@ Progress:
 | 16 | Independent reviewer | pending |
 | 17 | PR and trace guard | PR #4 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 38 mutants, 36 killed at once, 2 survivors killed by contracts added in 7310f6d |
-| 19 | Five independent QA lenses | round 1 findings fixed (see QA round 1), re-verification pending |
+| 19 | Five independent QA lenses | round 1 and round 2 findings fixed (see QA round 1 and 2), re-verification pending |
 
 ## Baseline on 0.2.1 (before any change)
 
@@ -190,5 +191,34 @@ oracle, `RETRYHEADER_E2E=1` and `RETRYHEADER_E2E_PYPI=1`: `ruff format --check .
 no skips) all exit 0. The new contracts also pass on CPython 3.10.19.
 
 ### Disputed findings
+
+None.
+
+## QA round 2 (item 19)
+
+Lenses a and e re-ran on 6e152eb and each reported new findings; every one is fixed and
+nothing is disputed.
+
+| Finding | Fix | Pinned by |
+| --- | --- | --- |
+| a-N1 a `DisplayString` with a lone surrogate fails with the codec's `UnicodeEncodeError`, and its docstring says it may hold any text | building it raises the library's own `ValueError` ("display strings hold text UTF-8 can encode: ...", input quoted and cut to 40 characters); the docstring and GUIDE say it holds any text UTF-8 can encode; CHANGELOG and GUIDE upgrade notes record the change | `test_a_display_string_utf8_cannot_encode_is_the_librarys_value_error` (failed on 6e152eb, 3 cases) |
+| e-N07 the fold of an ambiguous `now` is not pinned | contract with a fold-aware zone (hand-written model of America/New_York on 2026-11-01; tzdata is not installed on this PC): fold=0 reads EDT, fold=1 reads EST | `test_an_ambiguous_now_is_read_with_the_offset_its_fold_picks` |
+| e-N12 a `now` whose tzinfo returns no offset is not pinned as UTC | contract that such a `now` gives the same delay as the naive value (UTC) | `test_a_now_whose_tzinfo_has_no_offset_is_read_as_utc_not_local_time` |
+| e-N04 a `timedelta` subclass overriding `seconds` is not pinned | contract with a subclass whose `days`, `seconds` and `microseconds` all lie | `test_a_timedelta_subclass_is_read_through_the_base_descriptors` |
+| e-N09 a `datetime` subclass overriding `tzinfo` is not pinned | contract with a subclass whose `tzinfo` and `fold` lie | `test_a_datetime_subclass_is_read_with_its_stored_tzinfo_and_fold` |
+
+The time contracts live in `tests/test_contract_time.py`. Each reported mutant of
+`_time.py`, applied alone, now fails them: `fold=0` (N07), `if moment.tzinfo is None:`
+(N12, on a host in Europe/Madrid; the result of the mutant depends on the host's zone),
+`delta.seconds` (N04), `moment.tzinfo` (N09), plus `delta.microseconds`, `delta.days`
+and `fold=moment.fold`: all seven killed. The N1 contract failed on 6e152eb before the fix.
+
+Gates at f26a4c8 on another machine from a fresh clone, CPython 3.14.2, with the fetched
+sources, http-sf, werkzeug, urllib3, httpx, requests, multidict, pydantic, the 0.2.1
+oracle, `RETRYHEADER_E2E=1` and `RETRYHEADER_E2E_PYPI=1`: `ruff format --check .`,
+`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` (2655 passed,
+no skips) all exit 0.
+
+### Disputed findings (round 2)
 
 None.
