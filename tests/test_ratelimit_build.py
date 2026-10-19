@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
 from datetime import datetime, timezone
+from typing import Any
 
 import pytest
 
 from retryheader import (
+    DisplayString,
     QuotaPolicy,
     ServiceLimit,
     build_ratelimit,
@@ -155,3 +158,35 @@ def test_instances_are_frozen_hashable_and_own_their_extra() -> None:
         limit.remaining = 5  # type: ignore[misc]
     assert hash(limit) == hash(ServiceLimit("a", 1))
     assert len({QuotaPolicy("a", 1), QuotaPolicy("a", 1)}) == 1
+
+
+def test_display_strings_escape_exactly_percent_quote_and_non_ascii() -> None:
+    # Hand-written from RFC 9651 section 4.1.11: SP and "~" are the printable range edges.
+    limit = ServiceLimit("a", 1, extra={"m": DisplayString(' "%~é')})
+    assert build_ratelimit([limit]) == '"a";r=1;m=%" %22%25~%1f%7f%c3%a9"'
+
+
+class _Sneaky(DisplayString):
+    __slots__ = ()
+
+    def encode(self, *args: Any, **kwargs: Any) -> bytes:
+        return b"EVIL"
+
+    def __iter__(self) -> Iterator[str]:
+        return iter("EVIL")
+
+
+class _Evil(ServiceLimit):
+    """A subclass whose extra skips the checks made on creation."""
+
+    @property
+    def extra(self) -> Mapping[str, Any]:
+        return {"m": _Sneaky("ok")}
+
+    @extra.setter
+    def extra(self, value: object) -> None:
+        pass
+
+
+def test_a_display_string_subclass_is_written_as_its_real_text() -> None:
+    assert build_ratelimit([_Evil("a", 1)]) == '"a";r=1;m=%"ok"'

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -126,3 +126,28 @@ def test_builders_refuse_items_of_another_type() -> None:
     with pytest.raises(TypeError):
         delay_from_headers({"Retry-After": "5"}, now="now")  # type: ignore[arg-type]
     assert format_http_date(datetime(2026, 1, 1)) == "Thu, 01 Jan 2026 00:00:00 GMT"
+
+
+def test_a_plain_date_as_now_is_refused_with_its_own_message() -> None:
+    # A date is the easy mistake (date.today()); every now= refuses it before reading a field.
+    day = date(2026, 1, 1)
+    calls: list[Callable[[], object]] = [
+        lambda: parse_retry_after("120", now=day),  # type: ignore[arg-type]
+        lambda: parse_http_date("Sun, 06 Nov 1994 08:49:37 GMT", now=day),  # type: ignore[arg-type]
+        lambda: delay_from_headers({"Retry-After": "5"}, now=day),  # type: ignore[arg-type]
+    ]
+    for call in calls:
+        with pytest.raises(TypeError, match=r"^expected a datetime, not date$"):
+            call()
+
+
+@pytest.mark.parametrize(
+    ("length", "shown"),
+    [(40, "N" * 40), (41, "N" * 37 + "..."), (200, "N" * 37 + "...")],
+    ids=["40", "41", "200"],
+)
+def test_a_type_name_in_a_message_is_cut_to_40_characters(length: int, shown: str) -> None:
+    odd = type("N" * length, (), {})()
+    with pytest.raises(TypeError) as caught:
+        format_http_date(odd)
+    assert str(caught.value) == f"expected a datetime, not {shown}"
