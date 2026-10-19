@@ -1,13 +1,19 @@
 """The values carried by the RateLimit and RateLimit-Policy fields."""
 
-from __future__ import annotations
-
+# No "from __future__ import annotations": the classes show as retryheader.<Name>, so
+# string annotations would be resolved in the package namespace, where Mapping and
+# ParamValue do not exist, and typing.get_type_hints (and pydantic) would fail.
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, NoReturn
 
 from ._errors import number, type_name
+from ._sf_types import DisplayString, Token
+from ._time import plain_datetime
+
+# The largest Integer a structured field can carry (RFC 9651 section 3.3.1).
+_MAX_INT = 999_999_999_999_999
 
 ParamValue = int | float | str | bytes | bool | datetime
 
@@ -36,6 +42,8 @@ def _count(owner: object, attr: str, value: object, *, optional: bool, minimum: 
     plain = int.__index__(value)
     if plain < minimum:
         raise ValueError(f"{attr} must be at least {minimum}, not {number(plain)}")
+    if plain > _MAX_INT:
+        raise ValueError(f"{attr} must be at most {_MAX_INT}, not {number(plain)}")
     object.__setattr__(owner, attr, plain)
 
 
@@ -56,11 +64,35 @@ def _common(owner: object, partition_key: object, extra: object) -> None:
     for key, value in extra.items():
         if not isinstance(key, str):
             raise TypeError(f"extra parameter names must be str, not {type_name(key)}")
-        if not isinstance(value, (int, float, str, bytes, datetime)):
-            raise TypeError(f"unsupported extra parameter value of type {type_name(value)}")
-        copy[str.__str__(key)] = value
+        copy[str.__str__(key)] = _plain(value)
     # Freeze a private copy so a frozen instance cannot change through the caller's dict.
     object.__setattr__(owner, "extra", _ReadOnlyDict(copy))
+
+
+def _plain(value: object) -> ParamValue:
+    # Copy into the exact built-in type (Token and DisplayString keep their own), so a
+    # subclass's __repr__, __hash__ or __str__ never reaches repr(), hash() or the output.
+    if isinstance(value, bool):
+        return value is True
+    if isinstance(value, int):
+        plain = int.__index__(value)
+        if not -_MAX_INT <= plain <= _MAX_INT:
+            raise ValueError(
+                f"an integer extra parameter has at most 15 digits, not {number(plain)}"
+            )
+        return plain
+    if isinstance(value, float):
+        return float.__float__(value)
+    if isinstance(value, (Token, DisplayString)):
+        kind = Token if isinstance(value, Token) else DisplayString
+        return kind(str.__str__(value))
+    if isinstance(value, str):
+        return str.__str__(value)
+    if isinstance(value, bytes):
+        return bytes.__getitem__(value, slice(None))
+    if isinstance(value, datetime):
+        return plain_datetime(value)
+    raise TypeError(f"unsupported extra parameter value of type {type_name(value)}")
 
 
 @dataclass(frozen=True)
@@ -72,7 +104,10 @@ class QuotaPolicy:
     sent), ``unit`` is ``qu`` (``"requests"`` by default), ``partition_key`` is ``pk`` and
     ``extra`` holds every other parameter, read only. Values are checked on creation:
     TypeError for a wrong type (``bool`` is not an int here), ValueError for a number
-    out of range. Instances are frozen, hashable (``extra`` aside) and pickle.
+    out of range (counts and integer ``extra`` values have at most 15 digits, as in a
+    structured field). Every value is stored as its exact built-in type (``Token`` and
+    ``DisplayString`` keep theirs), so a subclass never changes how it shows. Instances
+    are frozen, hashable (``extra`` aside) and pickle by public names only.
 
     >>> from retryheader import QuotaPolicy, build_ratelimit_policy
     >>> policy = QuotaPolicy("burst", 100, window=60)
@@ -100,6 +135,11 @@ class QuotaPolicy:
         _text(self, "unit", self.unit, "unit")
         _text(self, "name", self.name, "policy name")
         _common(self, self.partition_key, self.extra)
+
+    def __reduce__(self) -> tuple[Any, ...]:
+        # Built from public values only: the pickle never names a private module.
+        fields = (self.name, self.quota, self.window, self.unit, self.partition_key)
+        return (type(self), (*fields, dict(self.extra)))
 
 
 @dataclass(frozen=True)
@@ -131,3 +171,7 @@ class ServiceLimit:
         _count(self, "window", self.window, optional=True, minimum=0)
         _text(self, "policy", self.policy, "policy name")
         _common(self, self.partition_key, self.extra)
+
+    def __reduce__(self) -> tuple[Any, ...]:
+        fields = (self.policy, self.remaining, self.window, self.partition_key)
+        return (type(self), (*fields, dict(self.extra)))

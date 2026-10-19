@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 
 from ._errors import RetryAfterError, quote
 from ._httpdate import parse_http_date
-from ._time import as_utc, check_datetime, check_text, strip_ows
+from ._time import check_now, check_text, strip_ows
 
 
 def parse_retry_after(value: str, *, now: datetime | None = None, strict: bool = False) -> float:
@@ -22,7 +22,8 @@ def parse_retry_after(value: str, *, now: datetime | None = None, strict: bool =
     RFC 9110 grammar, see ``parse_http_date``.
 
     Raises RetryAfterError on anything else, TypeError when ``value`` is not a str or
-    ``now`` not a datetime.
+    ``now`` not a datetime, ValueError (not a RetryAfterError) when ``now`` is aware and
+    its UTC moment falls outside years 1 to 9999, whatever the value.
 
     >>> from datetime import datetime, timezone
     >>> from retryheader import parse_retry_after
@@ -39,8 +40,7 @@ def parse_retry_after(value: str, *, now: datetime | None = None, strict: bool =
     retryheader.RetryAfterError: invalid Retry-After value: '1.5'
     """
     value = check_text(value, "Retry-After value")
-    if now is not None:
-        check_datetime(now)
+    now = check_now(now)
     text = strip_ows(value)
     if not text:
         raise RetryAfterError("empty Retry-After value")
@@ -51,5 +51,5 @@ def parse_retry_after(value: str, *, now: datetime | None = None, strict: bool =
         when = parse_http_date(text, now=now, strict=strict)
     except RetryAfterError as exc:
         raise RetryAfterError(f"invalid Retry-After value: {quote(value)}") from exc
-    reference = as_utc(now) if now is not None else datetime.now(timezone.utc)
+    reference = now if now is not None else datetime.now(timezone.utc)
     return max(0.0, (when - reference).total_seconds())

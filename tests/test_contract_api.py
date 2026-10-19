@@ -80,6 +80,8 @@ def test_errors_are_value_errors_and_show_as_public_names() -> None:
         assert error.__mro__[1] is ValueError
         assert error.__module__ == "retryheader"
     assert QuotaPolicy.__module__ == ServiceLimit.__module__ == "retryheader"
+    assert retryheader.Token.__module__ == retryheader.DisplayString.__module__ == "retryheader"
+    assert retryheader.Token.__mro__[1] is retryheader.DisplayString.__mro__[1] is str
 
 
 def test_nothing_public_besides_all() -> None:

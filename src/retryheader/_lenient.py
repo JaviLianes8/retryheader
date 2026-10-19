@@ -8,14 +8,16 @@ from datetime import datetime
 from ._calendar import DAYS, MONTHS, assemble
 
 # RFC 5322 section 3.3 date-time, with its obsolete forms (two- and three-digit years,
-# named US zones, optional seconds and flexible spacing) but without comments. Erratum
-# 6639 (verified) makes the space before a named zone optional. Military single-letter
-# zones and unknown names are left out on purpose: RFC 5322 says their meaning is
-# unreliable, so the moment would be a guess. "UTC" is accepted as a synonym of "UT".
+# named US zones, optional seconds and flexible spacing, also around the time colons as
+# obs-hour, obs-minute and obs-second allow) but without comments. Erratum 6639
+# (verified) makes the space before a named zone optional. Military single-letter zones
+# and unknown names are left out on purpose: RFC 5322 says their meaning is unreliable,
+# so the moment would be a guess. "UTC" is accepted as a synonym of "UT".
 _DATE = re.compile(
     rf"(?:(?:{'|'.join(DAYS)})[ \t]*,[ \t]*)?"
     rf"(?P<day>\d{{1,2}})[ \t]+(?P<month>{'|'.join(MONTHS)})[ \t]+(?P<year>\d{{2,4}})"
-    r"[ \t]+(?P<hour>\d{2}):(?P<minute>\d{2})(?::(?P<second>\d{2}))?"
+    r"[ \t]+(?P<hour>\d{2})[ \t]*:[ \t]*(?P<minute>\d{2})"
+    r"(?:[ \t]*:[ \t]*(?P<second>\d{2}))?"
     r"(?:[ \t]+(?P<offset>[+-]\d{4})|[ \t]*(?P<named>UT|UTC|GMT|EST|EDT|CST|CDT|MST|MDT|PST|PDT))",
     re.ASCII | re.IGNORECASE,
 )

@@ -12,7 +12,10 @@ comment line after a `print` holds what it prints.
   `1e3` and Arabic-Indic digits are refused. A value too large for a float gives
   `math.inf`; cap it before sleeping.
 - **An HTTP-date** in any of its three formats is measured from `now`, the current UTC
-  time by default; a naive `now` is read as UTC. A date in the past gives `0.0`.
+  time by default; a naive `now` is read as UTC. A date in the past gives `0.0`. An aware
+  `now` whose UTC moment falls outside years 1 to 9999 is a `ValueError`, checked on
+  entry whatever the value (the same holds for `parse_http_date` and
+  `delay_from_headers`).
 - Only spaces and tabs around the value are ignored (RFC 9110 optional whitespace).
 - `strict` applies to the date form, see below.
 
@@ -23,6 +26,8 @@ comment line after a `print` holds what it prints.
   `int` subclass, such as an `IntEnum`, is written as its number.
 - A `datetime` becomes an IMF-fixdate in GMT (naive means UTC); a fraction of a second
   rounds up to the next second.
+- A subclass of `int`, `float`, `timedelta` or `datetime` is read as its value: its own
+  methods never change the text written.
 
 ```python
 from datetime import datetime, timedelta, timezone
@@ -63,7 +68,8 @@ grammar it reads:
 - the three formats in any letter case, without checking the day name;
 - RFC 5322 dates (section 3.3, with the obsolete forms of section 4.3, but no comments):
   an optional day name, a one- or two-digit day, a two- to four-digit year, seconds
-  optional, flexible spaces, and a zone that is numeric (`+0200`, up to `+9959`, minutes
+  optional, flexible spaces (also around the colons of the time, `08 : 49 : 37`), and a
+  zone that is numeric (`+0200`, up to `+9959`, minutes
   up to 59) or one of `UT`, `UTC`, `GMT`, `EST`, `EDT`, `CST`, `CDT`, `MST`, `MDT`, `PST`,
   `PDT`. A two-digit year below 50 is 20xx, from 50 19xx; a three-digit year counts from
   1900. A named zone may follow the time without a space (verified erratum 6639).
@@ -112,8 +118,10 @@ a Token, a Display String or any other type there makes the field malformed.
 | | `pk` | `partition_key` | optional Byte Sequence |
 
 Any other parameter lands in `extra`, a read-only dict. A Date becomes an aware UTC
-`datetime`; a Token or a Display String comes back as a `str` subclass and is written back
-in its own form. A repeated parameter keeps its last value (RFC 9651).
+`datetime`; a Token comes back as a `Token` and a Display String as a `DisplayString`,
+both public `str` subclasses, and each is written back in its own form. Build an `extra`
+value with `Token("sliding")` or `DisplayString("café")` to send those types; a plain
+`str` is sent as a String. A repeated parameter keeps its last value (RFC 9651).
 
 `parse_ratelimit_policy` and `parse_ratelimit` take the field value or all its field
 lines (combined with commas, as RFC 9651 requires). The policy field must list at least
@@ -121,8 +129,12 @@ one policy; an empty `RateLimit` field has no limits. Anything malformed raises
 `RateLimitError` for the whole field.
 
 `QuotaPolicy` and `ServiceLimit` check their values on creation (`TypeError` for a wrong
-type, `bool` included, `ValueError` for a number out of range) and store plain `str`,
-`int` and `bytes`. They are frozen, compare with `extra`, hash without it, and pickle.
+type, `bool` included, `ValueError` for a number out of range: a count or an integer
+`extra` value has at most 15 digits, as in a structured field) and store every value as
+its exact built-in type (`str`, `int`, `float`, `bytes`, `bool`, `datetime`; `Token` and
+`DisplayString` keep theirs), so a subclass never changes how a value shows or hashes.
+They are frozen, compare with `extra`, hash without it, and pickle by public names only
+(`retryheader.<Name>`, `extra` as a plain dict).
 `build_ratelimit_policy` and `build_ratelimit` raise `ValueError` for what a structured
 field cannot carry: text outside printable ASCII, an integer past 15 digits, a decimal
 past 12 integer digits, an invalid parameter name, an `extra` name that is already a
@@ -156,10 +168,12 @@ Malformed fields are ignored, as both specifications ask. The shapes of older dr
 not read: `limit=2, remaining=0, reset=60` is a malformed RateLimit field under draft -11,
 and `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` are not draft -11
 fields. The RateLimit fields of a response with an `Age` above zero, which a cache
-served, are ignored too (draft section 7.3); the first member of `Age` is read and an
-invalid `Age` is ignored (RFC 9111). With `use_date_header=True`, an HTTP-date in
-Retry-After is measured from the response's own `Date` when there is exactly one valid
-`Date`, which cancels clock skew.
+served, are ignored too (draft section 7.3); the first non-empty member of `Age` is read
+and an invalid `Age` is ignored (RFC 9111, RFC 9110 section 5.6.1.2). With
+`use_date_header=True`, an HTTP-date in Retry-After is measured from the response's own
+`Date` when the response has exactly one `Date` field line and it is valid, which cancels
+clock skew. `Date` is a singleton field, so two `Date` lines, even if one is valid, make
+it unusable and `now` is used instead.
 
 requests (`CaseInsensitiveDict`) and httpx (`Headers` as a mapping) join repeated lines
 of a field with a comma. Joined RateLimit lines read the same as separate lines; a joined
@@ -172,15 +186,18 @@ every line. Names and values must be `str`: bytes pairs (as in ASGI) are a `Type
 | --- | --- |
 | `RetryAfterError` (a `ValueError`) | a Retry-After value or an HTTP-date cannot be parsed |
 | `RateLimitError` (a `ValueError`) | a RateLimit or RateLimit-Policy field is malformed |
-| `ValueError` | a value cannot be built: non-finite or huge number, out-of-range date, unrepresentable field |
+| `ValueError` | a value cannot be built: non-finite or huge number, out-of-range date, unrepresentable field; an aware `now` outside years 1 to 9999 in UTC |
 | `TypeError` | an argument of the wrong type, `bool` where a number is expected included |
 
 Messages quote at most 40 characters of the input and describe a huge integer by its size.
 
 ## Stability
 
-From 1.0.0 the thirteen names of `retryheader.__all__`, their signatures, defaults and
-error types follow Semantic Versioning. The RateLimit fields follow draft -11; if a later
+From 1.0.0 the fifteen names of `retryheader.__all__`, their signatures, defaults and
+error types follow Semantic Versioning. The type aliases in the signatures are not
+exported: an `extra` value is `int | float | str | bytes | bool | datetime`, and
+`headers` is a mapping of `str` to `str`, an object whose `items()` gives `(str, str)`
+pairs, or an iterable of such pairs. The RateLimit fields follow draft -11; if a later
 revision or the RFC changes them, the change is released as documented in the changelog.
 Everything else is private and may change.
 
@@ -201,3 +218,12 @@ Every 0.2.1 call keeps its result except for these changes (all in the changelog
   `retryheader.<Name>`, and pickles made by 0.2.1 still load.
 - A float `extra` value too large for a decimal is a `ValueError` (it raised
   `decimal.InvalidOperation`), and the caller's `decimal` context no longer matters.
+- A count (`quota`, `remaining`, `window`) or an integer `extra` value past 15 digits is
+  a `ValueError` on creation; 0.2.1 accepted it and failed only when building.
+- `Token` and `DisplayString` are public, and their pickles name `retryheader`.
+- An aware `now` with no UTC moment in years 1 to 9999 is a `ValueError` on entry; 0.2.1
+  raised it only for some header forms.
+- The default mode reads spaces around the colons of an RFC 5322 time, and
+  `delay_from_headers` skips empty members of `Age`.
+- A subclass of `int`, `float`, `str`, `bytes`, `datetime` or `timedelta` is read and
+  stored as its plain value, so its own methods no longer change what is written.

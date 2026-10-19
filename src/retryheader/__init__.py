@@ -14,21 +14,24 @@ from ._parse import parse_retry_after
 from ._ratelimit import parse_ratelimit, parse_ratelimit_policy
 from ._ratelimit_build import build_ratelimit, build_ratelimit_policy
 from ._ratelimit_types import QuotaPolicy, ServiceLimit
+from ._sf_types import DisplayString, Token
 
 __version__ = "1.0.0"
 
 # The public classes show and pickle as retryheader.<Name>, so a pickle never depends on
 # the private module that defines them (pickles made by 0.2 still load: the classes stay
-# where 0.2 defined them).
-for _cls in (QuotaPolicy, RateLimitError, RetryAfterError, ServiceLimit):
+# where 0.2 defined them). QuotaPolicy and ServiceLimit pickle their extra as a plain dict.
+for _cls in (DisplayString, QuotaPolicy, RateLimitError, RetryAfterError, ServiceLimit, Token):
     _cls.__module__ = __name__
 del _cls
 
 __all__ = [
+    "DisplayString",
     "QuotaPolicy",
     "RateLimitError",
     "RetryAfterError",
     "ServiceLimit",
+    "Token",
     "build_ratelimit",
     "build_ratelimit_policy",
     "build_retry_after",

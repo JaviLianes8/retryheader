@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 
 from ._errors import type_name
 from ._httpdate import format_http_date
+from ._time import whole_seconds
 
 
 def build_retry_after(value: int | float | timedelta | datetime) -> str:
@@ -38,9 +39,10 @@ def build_retry_after(value: int | float | timedelta | datetime) -> str:
         return format_http_date(value)
     if isinstance(value, timedelta):
         # Integer arithmetic: total_seconds() is a float and loses microseconds on
-        # long delays, which could round a delay down.
-        whole = value.days * 86400 + value.seconds + (1 if value.microseconds else 0)
-        return str(max(0, whole))
+        # long delays, which could round a delay down. The base class descriptors are
+        # read, so a subclass cannot change the number written.
+        whole, micro = whole_seconds(value)
+        return str(max(0, whole + (1 if micro else 0)))
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise TypeError(f"unsupported Retry-After value of type {type_name(value)}")
     if isinstance(value, int):

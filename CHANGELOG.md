@@ -8,7 +8,7 @@ All notable changes to this project are documented here. The format follows
 
 ## [1.0.0] - 2026-10-19
 
-The public API is now stable: the thirteen names in `retryheader.__all__`, their
+The public API is now stable: the fifteen names in `retryheader.__all__`, their
 signatures, defaults and error types follow Semantic Versioning from this release on.
 The RateLimit fields follow draft-ietf-httpapi-ratelimit-headers-11, still an
 Internet-Draft.
@@ -18,12 +18,12 @@ Internet-Draft.
 - Retry-After: `parse_retry_after` and `build_retry_after`.
 - HTTP-date: `parse_http_date` (strict RFC 9110 or robust) and `format_http_date`.
 - RateLimit and RateLimit-Policy: `parse_ratelimit`, `parse_ratelimit_policy`,
-  `build_ratelimit`, `build_ratelimit_policy` and the `ServiceLimit` and `QuotaPolicy`
-  values.
+  `build_ratelimit`, `build_ratelimit_policy`, the `ServiceLimit` and `QuotaPolicy`
+  values and the `Token` and `DisplayString` parameter values.
 - `delay_from_headers`: the seconds to wait from the headers of a response.
 - Errors: `RetryAfterError` and `RateLimitError` (both `ValueError`) for invalid text,
-  `ValueError` for a value that cannot be built, `TypeError` for arguments of the wrong
-  type.
+  `ValueError` for a value that cannot be built or an aware `now` with no UTC moment in
+  years 1 to 9999, `TypeError` for arguments of the wrong type.
 
 ### Fixed
 
@@ -34,7 +34,7 @@ Internet-Draft.
   limit made the message itself raise a `ValueError` about digits, and a value whose
   `repr` failed raised that error instead of `TypeError`.
 - `build_ratelimit` and `build_ratelimit_policy` raised `decimal.InvalidOperation` for a
-  float `extra` value of about 1e16 or more, and the caller's `decimal` context
+  float `extra` value of about 1e25 or more, and the caller's `decimal` context
   (precision, traps) could change the result or raise. Such a value is now a
   `ValueError`, and a private context is used.
 - Numbers are written as plain numbers: an `int` subclass with its own `__str__` (an
@@ -44,6 +44,12 @@ Internet-Draft.
   longer change how a value is parsed or reported.
 - A leap second anywhere but 23:59:60 UTC is reported as such (the message said
   "impossible date").
+- A subclass of `datetime` or `timedelta` is read as its value: its own `__format__`,
+  `weekday` or `days` can no longer change the text `format_http_date`,
+  `build_retry_after` or `build_ratelimit` write (a hostile subclass could inject a line
+  break into a header).
+- `delay_from_headers` skips empty members of `Age` (RFC 9110 section 5.6.1.2), so
+  `Age: , 5` marks a cached response.
 
 ### Changed
 
@@ -61,14 +67,29 @@ Internet-Draft.
   two-character string as a name and a value.
 - `QuotaPolicy` and `ServiceLimit` check `extra` on creation: names must be `str` and
   values `int`, `float`, `str`, `bytes`, `bool` or `datetime` (`TypeError`; 0.2.1 failed
-  only when building). They store plain `str`, `int` and `bytes`, give each instance its
-  own empty `extra`, and show and pickle as `retryheader.QuotaPolicy` and
-  `retryheader.ServiceLimit`, like the two errors; pickles made by 0.2.1 still load.
+  only when building). They store every value as its exact built-in type (`Token` and
+  `DisplayString` keep theirs), give each instance its own empty `extra`, and show and
+  pickle as `retryheader.QuotaPolicy` and `retryheader.ServiceLimit`, like the two
+  errors, with `extra` as a plain dict, so a pickle names no private module; pickles made
+  by 0.2.1 still load.
+- `quota`, `remaining`, `window` and integer `extra` values past 15 digits (the
+  structured field limit) are a `ValueError` on creation; 0.2.1 accepted them and failed
+  only when building, and `repr` of a value past 4300 digits raised.
+- An aware `now` whose UTC moment falls outside years 1 to 9999 is a `ValueError` on
+  entry to `parse_retry_after`, `parse_http_date` and `delay_from_headers`, whatever the
+  header value; 0.2.1 raised it only when a date had to be resolved, and out of
+  `delay_from_headers` too.
+- The default mode reads spaces and tabs around the colons of an RFC 5322 time
+  (`08 : 49 : 37`), as the obsolete syntax of RFC 5322 section 4.3 allows.
 - `TypeError` messages name the type of the value instead of quoting it.
 - The package no longer exposes the stray name `annotations`.
 
 ### Added
 
+- `Token` and `DisplayString`, the `str` subclasses that RateLimit parameters of those
+  types parse to, are public: build an `extra` value with them to send a Token or a
+  Display String. They show and pickle as `retryheader.Token` and
+  `retryheader.DisplayString`.
 - Runnable examples in every public docstring, run as doctests, and a GUIDE with every
   rule, error and the upgrade notes.
 - Tests against the specifications fetched at test time: the RFC 9110 grammar converted

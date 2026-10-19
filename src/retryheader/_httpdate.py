@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from ._calendar import DAYS, MONTHS, assemble
 from ._errors import RetryAfterError, quote
 from ._lenient import parse_rfc5322
-from ._time import as_utc, check_datetime, check_text, strip_ows
+from ._time import as_utc, check_datetime, check_now, check_text, strip_ows
 
 _DAYS = "|".join(DAYS)
 _LONG_DAYS = "Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday"
@@ -41,7 +41,8 @@ def parse_http_date(value: str, *, now: datetime | None = None, strict: bool = F
     explicit zone (``+0200``, ``GMT``, ``UT``, ``UTC``, ``EST``) are accepted too, and the
     day name is not checked. A date without a zone, or with a zone whose offset is not
     known, is always rejected. Raises RetryAfterError on invalid input, TypeError when
-    ``value`` is not a str or ``now`` not a datetime.
+    ``value`` is not a str or ``now`` not a datetime, ValueError (not a RetryAfterError)
+    when ``now`` is aware and its UTC moment falls outside years 1 to 9999.
 
     >>> from datetime import datetime, timezone
     >>> from retryheader import parse_http_date
@@ -58,8 +59,7 @@ def parse_http_date(value: str, *, now: datetime | None = None, strict: bool = F
     retryheader.RetryAfterError: invalid HTTP-date: 'Sun, 06 Nov 1994 10:49:37 +0200'
     """
     value = check_text(value, "HTTP-date")
-    if now is not None:
-        check_datetime(now)
+    now = check_now(now)
     text = strip_ows(value)
     for pattern in _EXACT:
         match = pattern.fullmatch(text)

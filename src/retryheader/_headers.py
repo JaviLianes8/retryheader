@@ -10,7 +10,7 @@ from ._errors import RateLimitError, RetryAfterError, type_name
 from ._httpdate import parse_http_date
 from ._parse import parse_retry_after
 from ._ratelimit import parse_ratelimit
-from ._time import check_datetime, strip_ows
+from ._time import check_now, strip_ows
 
 
 class HeaderItems(Protocol):
@@ -37,10 +37,12 @@ def delay_from_headers(
     specifications ask, and so are the RateLimit fields of a response served from a cache
     (an ``Age`` above zero), as the draft recommends. An HTTP-date is measured from
     ``now`` (the current UTC time by default) or, with ``use_date_header``, from the
-    response's own Date header when it is valid, which cancels any clock difference
-    between client and server. Like ``parse_retry_after``, an absurdly large
-    delay-seconds gives ``math.inf``. Raises TypeError when ``headers`` is not a mapping
-    or an iterable of (name, value) pairs of str, or ``now`` is not a datetime.
+    response's own Date header when the response has exactly one Date field line and it
+    is valid (Date is a singleton field), which cancels any clock difference between
+    client and server. Like ``parse_retry_after``, an absurdly large delay-seconds gives
+    ``math.inf``. Raises TypeError when ``headers`` is not a mapping or an iterable of
+    (name, value) pairs of str, or ``now`` is not a datetime; ValueError when ``now`` is
+    aware and its UTC moment falls outside years 1 to 9999, whatever the headers.
 
     >>> from retryheader import delay_from_headers
     >>> delay_from_headers({"Retry-After": "120", "RateLimit": '"a";r=0;t=30'})
@@ -50,8 +52,7 @@ def delay_from_headers(
     >>> delay_from_headers({"Retry-After": "soon", "Content-Type": "text/plain"}) is None
     True
     """
-    if now is not None:
-        check_datetime(now)
+    now = check_now(now)
     fields = _collect(headers)
     reference = now
     if use_date_header:
@@ -108,10 +109,10 @@ def _date(values: list[str], now: datetime | None) -> datetime | None:
 
 def _from_cache(values: list[str]) -> bool:
     # RFC 9111 section 5.1: Age is delta-seconds; a list keeps its first member and an
-    # invalid value is ignored. A positive age means a cache served the response.
-    if not values:
-        return False
-    first = strip_ows(",".join(values).split(",", 1)[0])
+    # invalid value is ignored. Empty list elements do not count (RFC 9110 5.6.1.2). A
+    # positive age means a cache served the response.
+    members = (strip_ows(member) for member in ",".join(values).split(","))
+    first = next((member for member in members if member), "")
     return first.isascii() and first.isdigit() and first.strip("0") != ""
 
 
