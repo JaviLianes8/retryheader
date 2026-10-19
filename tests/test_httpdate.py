@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
@@ -161,6 +161,12 @@ def test_format_pads_years_to_four_digits() -> None:
 def test_format_rejects_non_datetimes() -> None:
     with pytest.raises(TypeError):
         format_http_date("2026-10-21")  # type: ignore[arg-type]
+
+
+def test_format_rejects_a_plain_date_with_its_own_message() -> None:
+    # A date is the easy mistake (date.today()); it is refused before any field is read.
+    with pytest.raises(TypeError, match=r"^expected a datetime, not date$"):
+        format_http_date(date(2026, 1, 1))  # type: ignore[arg-type]
 
 
 def test_lenient_seconds_are_optional_and_zero() -> None:

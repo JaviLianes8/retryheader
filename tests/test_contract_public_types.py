@@ -5,6 +5,7 @@ from __future__ import annotations
 import enum
 import inspect
 import pickle
+import traceback
 import typing
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -90,6 +91,11 @@ def test_a_display_string_utf8_cannot_encode_is_the_librarys_value_error(text: s
     # The input is quoted cut to 40 characters, and the codec's error never shows in a traceback.
     assert len(str(caught.value)) < 120
     assert caught.value.__suppress_context__ is True
+    assert caught.value.__cause__ is None
+    printed = "".join(
+        traceback.format_exception(ValueError, caught.value, caught.value.__traceback__)
+    )
+    assert "UnicodeEncodeError" not in printed
 
 
 class _Hostile(str):
