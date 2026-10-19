@@ -77,13 +77,19 @@ def test_tokens_and_display_strings_are_built_in_their_own_form() -> None:
         build_ratelimit([ServiceLimit("a", 1, extra={"m": Token("no spaces")})])
 
 
-@pytest.mark.parametrize("text", ["a\ud800b", "\udfff", "x" * 60 + "\udc80"])
+@pytest.mark.parametrize(
+    "text",
+    ["a\ud800b", "\udfff", "x" * 60 + "\udc80", "x" * 10_000 + "\ud800"],
+    ids=["inside", "alone", "after-60", "after-10000"],
+)
 def test_a_display_string_utf8_cannot_encode_is_the_librarys_value_error(text: str) -> None:
     limit = ServiceLimit("a", 1, extra={"m": DisplayString(text)})
     with pytest.raises(ValueError, match="display strings hold text UTF-8 can encode") as caught:
         build_ratelimit([limit])
     assert type(caught.value) is ValueError
+    # The input is quoted cut to 40 characters, and the codec's error never shows in a traceback.
     assert len(str(caught.value)) < 120
+    assert caught.value.__suppress_context__ is True
 
 
 class _Hostile(str):
