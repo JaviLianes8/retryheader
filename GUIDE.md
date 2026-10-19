@@ -152,11 +152,14 @@ object with `items()` (`http.client.HTTPMessage`, werkzeug `Headers`) or an iter
 2. Otherwise, the longest `t` of a service limit whose `r` is 0.
 3. Otherwise `None`.
 
-Malformed fields are ignored, as both specifications ask. The RateLimit fields of a
-response with an `Age` above zero, which a cache served, are ignored too (draft section
-7.3); the first member of `Age` is read and an invalid `Age` is ignored (RFC 9111).
-With `use_date_header=True`, an HTTP-date in Retry-After is measured from the response's
-own `Date` when there is exactly one valid `Date`, which cancels clock skew.
+Malformed fields are ignored, as both specifications ask. The shapes of older drafts are
+not read: `limit=2, remaining=0, reset=60` is a malformed RateLimit field under draft -11,
+and `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset` are not draft -11
+fields. The RateLimit fields of a response with an `Age` above zero, which a cache
+served, are ignored too (draft section 7.3); the first member of `Age` is read and an
+invalid `Age` is ignored (RFC 9111). With `use_date_header=True`, an HTTP-date in
+Retry-After is measured from the response's own `Date` when there is exactly one valid
+`Date`, which cancels clock skew.
 
 requests (`CaseInsensitiveDict`) and httpx (`Headers` as a mapping) join repeated lines
 of a field with a comma. Joined RateLimit lines read the same as separate lines; a joined

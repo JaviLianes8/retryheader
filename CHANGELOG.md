@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-10-18
+## [1.0.0] - 2026-10-19
 
 The public API is now stable: the thirteen names in `retryheader.__all__`, their
 signatures, defaults and error types follow Semantic Versioning from this release on.
@@ -76,9 +76,10 @@ Internet-Draft.
   requirements and examples of the RateLimit draft, and the structured field test suite
   (now with its large-value cases). Tests against independent implementations (`http-sf`
   by one of the authors of RFC 9651, werkzeug, urllib3, `email.utils`,
-  `http.cookiejar`), against PyPI 0.2.1, and on the header objects of real client
-  libraries; seeded fuzz and hostile input tests; an end-to-end test of the built wheel
-  with a real local HTTP exchange and the upgrade from PyPI 0.2.1.
+  `http.cookiejar`), against PyPI 0.2.1, on the header objects of real client libraries
+  and on the headers express-rate-limit sends from a real server; seeded fuzz and hostile
+  input tests; an end-to-end test of the built wheel with a real local HTTP exchange and
+  the upgrade from PyPI 0.2.1.
 - The sdist ships no third-party text: the specification excerpts it carried are gone,
   and the tests cut the examples from the fetched texts (a few short cited vectors always
   run).

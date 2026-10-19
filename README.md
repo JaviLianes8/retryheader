@@ -175,8 +175,9 @@ wrong century, a date in the past becomes a negative sleep, and a server that ro
 
 retryheader does this one job with the standard library only. It is tested against the
 examples and grammar of RFC 9110 and of the draft as published, the HTTP working group's
-structured field test suite, and, as independent oracles, `http-sf`, werkzeug, urllib3
-and Python's `email.utils` and `http.cookiejar`.
+structured field test suite, the headers express-rate-limit sends from a real server,
+and, as independent oracles, `http-sf`, werkzeug, urllib3 and Python's `email.utils`
+and `http.cookiejar`.
 
 ## Documentation
 
