@@ -23,6 +23,7 @@ from tests.generators import now, retry_after, sf_field
 
 NOW = datetime(2026, 10, 21, 7, 28, tzinfo=timezone.utc)
 _NAMED_ZONE = re.compile(r"\d(UT|UTC|GMT|[ECMP][SD]T)\s*$", re.IGNORECASE)
+_SPACED_COLON = re.compile(r"\d([ \t]+:|:[ \t]+)[ \t]*\d")
 
 
 @pytest.fixture(scope="module")
@@ -74,6 +75,10 @@ def _documented_date_change(new: Any, before: Any, text: str, strict: bool) -> b
         return bool(before[:2] == new[:2])  # same error, the message names the real problem
     # Erratum 6639: a named zone may follow the time without a space (default mode only).
     was_refused = isinstance(before, tuple) and before[0] == "error"
+    if not strict and was_refused and _SPACED_COLON.search(text):
+        # RFC 5322 4.3 obs-hour, obs-minute, obs-second: spaces around the time colons
+        # are read now; a date that then turns out impossible is still a RetryAfterError.
+        return not failed or bool(new[:2] == before[:2])
     return not strict and not failed and was_refused and bool(_NAMED_ZONE.search(text))
 
 
@@ -117,7 +122,8 @@ def test_ratelimit_fields_agree_with_0_2_1(old: ModuleType) -> None:
         )
         if new != before:
             dropped = '%"' in field or ":=:" in field or ("Age", "5") in headers
-            zone = bool(_NAMED_ZONE.search(headers[1][1].strip(" 	")))
+            date = headers[1][1].strip(" \t")
+            zone = bool(_NAMED_ZONE.search(date) or _SPACED_COLON.search(date))
             assert (dropped and new is None) or (zone and before != new), (headers, new, before)
 
 
