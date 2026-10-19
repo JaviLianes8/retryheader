@@ -283,3 +283,33 @@ all exit 0 in the host zone; the time, HTTP-date and public type contracts also 
 ### Disputed findings (round 4)
 
 None.
+
+## QA round 5 (item 19)
+
+Lens e re-ran on 5111a36. It confirmed N14 and N25 killed under `TZ=UTC0` and under the
+host zone, and reported four low findings: mutants that survive the suite. All four are
+fixed in 1fe199e with new contracts, and nothing is disputed. No behaviour changed in this
+round (tests only), so the CHANGELOG is unchanged.
+
+| Finding | Fix | Pinned by |
+| --- | --- | --- |
+| e-N31 `isinstance(now, date)` in `check_now` survives (a plain `date` as `now` fails later with CPython's descriptor message) | contract: a `date` passed as `now` to `parse_retry_after`, `parse_http_date` and `delay_from_headers` raises `TypeError` with exactly `expected a datetime, not date` | `test_a_plain_date_as_now_is_refused_with_its_own_message` |
+| e-N32 `name[: _LIMIT - 2]` and `len(name) < _LIMIT` in `type_name` survive (no test at the 40/41 character boundary) | contract: type names of 40, 41 and 200 characters give the exact message (40 shown whole, longer ones as 37 characters and `...`) | `test_a_type_name_in_a_message_is_cut_to_40_characters` |
+| e-N33 dropping `str.__str__` in `_display` survives (reachable through a `ServiceLimit` subclass whose `extra` returns a `DisplayString` subclass with its own `encode`) | hostile subclass contract: the serialiser writes the real text, `m=%"ok"` | `test_a_display_string_subclass_is_written_as_its_real_text` |
+| e-N36 the display string escapes (`%`, `"`, the SP and `~` range edges) were pinned only by the optional upstream corpus | hand-written contract from RFC 9651 section 4.1.11, no fetched files needed: `' "%~\x1f\x7f\u00e9'` is written as `%" %22%25~%1f%7f%c3%a9"` | `test_display_strings_escape_exactly_percent_quote_and_non_ascii` |
+
+Each reported mutant, applied alone in a copy without the fetched files, now fails a new
+contract: `isinstance(now, date)`, `name[: _LIMIT - 2]` (cases 41 and 200),
+`len(name) < _LIMIT` (case 40), dropping `value = str.__str__(value)` in `_display`, and
+`char in '%'`, `char in '"'`, `0x21 <= byte`, `byte <= 0x7D` in `_display`.
+
+Gates on 1fe199e's tree on another machine from a fresh clone, CPython 3.14, with the
+fetched sources, http-sf, werkzeug, urllib3, httpx, requests, multidict, pydantic, the
+0.2.1 oracle, `RETRYHEADER_E2E=1` and `RETRYHEADER_E2E_PYPI=1`: `ruff format --check .`,
+`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` (2665 tests)
+all exit 0 in the host zone; the time, HTTP-date, hostile input, RateLimit build,
+serialiser and public type contracts (1112 tests) also pass with `TZ=UTC0`.
+
+### Disputed findings (round 5)
+
+None.
