@@ -25,7 +25,7 @@ Progress:
 - [x] QA lenses round 6 (b, c, e): every finding fixed (10eff2a), nothing disputed
 - [x] QA round 7 (lens e re-check): every finding fixed (2694e2a), nothing disputed
 - [x] QA round 8 (lens e re-check): every finding fixed (ba7138d), nothing disputed
-- [ ] QA lenses re-verification (item 19) and independent review (item 16)
+- [x] QA lenses re-verification (item 19) and independent review (item 16): all PASS at a34d146
 
 ## Scorecard
 
@@ -46,10 +46,10 @@ Progress:
 | 13 | pyproject 1.0.0, Production/Stable | PASS: 3.10 to 3.14, MIT, Homepage/Source/Issues/Changelog, keywords, `dependencies = []` |
 | 14 | sdist and wheel contents | PASS |
 | 15 | Gates each exit 0 | PASS: see Gates |
-| 16 | Independent reviewer | pending |
-| 17 | PR and trace guard | PR #4 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
+| 16 | Independent reviewer | PASS at a34d146: every item scored, no fail (see Independent review) |
+| 17 | PR and trace guard | PASS: PR #4 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 38 mutants, 36 killed at once, 2 survivors killed by contracts added in 7310f6d |
-| 19 | Five independent QA lenses | rounds 1 to 8 findings fixed; lens a PASS at f51bc1e (source, GUIDE and CHANGELOG changed in round 6); b, c, d and e re-verification pending |
+| 19 | Five independent QA lenses | PASS: all five lenses PASS, every finding of rounds 1 to 8 fixed and re-verified, nothing disputed (see QA verdicts) |
 
 ## Baseline on 0.2.1 (before any change)
 
@@ -430,3 +430,53 @@ on the new test file.
 ### Disputed findings (round 8)
 
 None.
+
+## QA verdicts (item 19)
+
+Final verdict of each lens. Reports are kept in the certification work folder outside the
+repository (paths relative to it); nothing was posted to GitHub.
+
+| Lens | Runs | Final verdict | Report | Commit |
+| --- | --- | --- | --- | --- |
+| a. API and docs | 4 (rounds 1 to 3, re-check) | PASS | `lens-a-r4/REPORT.md` | f51bc1e |
+| b. Correctness and ground truth | 2 (round 1 and round 6, re-check) | PASS | `lens-b-r2/REPORT.md` | 436b63b |
+| c. Adversarial and robustness | 2 (round 1 and round 6, re-check) | PASS | `lens-c-r2/REPORT.md` | 436b63b |
+| d. Packaging and real e2e | 1 (round 1, no finding; re-run on another machine) | PASS | `lens-d-r1/run2/run-elena2.log` | 1ee9bdd |
+| e. Contract strength | rounds 1 to 8, final re-check | PASS (10 of 10 new mutants killed) | `lens-e-r4/REPORT.md` | a34d146 |
+
+Lenses a and d last ran before round 6, which changed the source, the GUIDE and the
+CHANGELOG. The independent review below covered their ground again at a34d146: every README
+and GUIDE example run, doctests, wheel and sdist contents (with `_extra.py`), a throwaway
+venv install, the upgrade from PyPI 0.2.1 and all six interpreters. The `docblocks exit 1`
+lines of the lens d log come from its own checker, which counts the prose comment lines of
+the README examples as expected output; the printed values match the comments.
+
+## Independent review (item 16)
+
+A fresh reviewer audited a34d146 against the 19 items from its own clone, on two other
+machines for the heavy runs, and posted nothing to GitHub. Verdict: PASS.
+
+| # | Result | Evidence |
+| --- | --- | --- |
+| 1 | PASS | 15 names, signatures introspected and pinned by `test_contract_api.py`; every change in the CHANGELOG 1.0.0 section |
+| 2 | PASS | public `dir()` equals `__all__`; docs import only from `retryheader` |
+| 3 | PASS | all 15 docstrings have examples; `--doctest-modules src` 16 passed; README and GUIDE examples run in `test_docs.py` |
+| 4 | PASS | `mypy --strict src` and `src tests` clean; `py.typed` in the wheel; no `Any` in public signatures |
+| 5 | PASS | 100k-character input gives a 92-character `RetryAfterError`; 5000 digits give `RateLimitError` "number too long"; NaN is `ValueError`; `None` is a `TypeError` naming the type |
+| 6 | PASS | 9 contract files green; they bite (lens e and the reviewer's own mutants) |
+| 7 | PASS | all 28 manifest files fetched live on 2026-10-19, sizes and sha256 match; nothing fetched committed or shipped; hand-written data labelled; every oracle and live PyPI 0.2.1 ran (2800 passed, 0 skipped) |
+| 8 | PASS | e2e and PyPI upgrade tests passed; own throwaway venv driven with `-I` from an empty folder; no CLI |
+| 9 | PASS | `test_fuzz.py` and `test_hostile.py` green on every interpreter |
+| 10 | PASS | installed wheel and sdist suite at a34d146: 3.10.19 2794 passed, 6 skipped; 3.11.14, 3.12.12, 3.13.11, 3.14.2, 3.14.2t 2797 passed, 3 skipped (the e2e tests, run in the main phase); 3.8 and 3.9 below `requires-python`, 3.13t not installed |
+| 11 | PASS | `twine check --strict` PASSED for both; problem, why, install, quick start; absolute links |
+| 12 | PASS | `[1.0.0] - 2026-10-19` with a Stable summary |
+| 13 | PASS | 1.0.0, Production/Stable, 3.10 to 3.14, MIT, Homepage, Source, Issues, Changelog, keywords, `Requires-Dist` only in the dev extra |
+| 14 | PASS | wheel: 17 modules, `py.typed`, LICENSE, metadata; sdist: source, tests with the manifest only, fetch script, docs, LICENSE; no process notes, scratch or third-party text |
+| 15 | PASS | fresh clone, CPython 3.14: the four gates exit 0 (2800 passed with the oracles and e2e) |
+| 16 | PASS | this review |
+| 17 | PASS | PR #4 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
+| 18 | PASS | 38-mutant table in CERT-1.0-MUTANTS.md; six mutants of its own, all killed (ceil to round, 50 to 49 years, quote limit 40 to 80, longest Retry-After to shortest, `remaining == 0` to `<= 1`, timedelta microsecond round-up dropped) |
+| 19 | PASS | five lens reports read and checked (table above) |
+
+Every item PASS. Note from the review, not a fail: `repr(Token("x"))` is `'x'`, so two
+`ServiceLimit` values that differ only in the type of an `extra` value show the same repr.
