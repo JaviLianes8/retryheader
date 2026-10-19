@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import base64
 import random
+import re
+import sys
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
@@ -115,6 +117,10 @@ def test_list_parsing_matches_http_sf(seed: int) -> None:
             theirs = "fail"
         except (ValueError, OverflowError):
             continue  # a date the reference cannot hold as a datetime: a model limit
+        if sys.version_info < (3, 11) and ours == "fail" and re.search(":=+:", candidate):
+            # Python 3.10's base64 decodes padding alone ("=") to b"" and http-sf inherits it;
+            # RFC 4648 and Python 3.11 refuse it, and so does this parser on every version.
+            continue
         assert ours == theirs, repr(candidate)
         agreed += ours != "fail"
     assert agreed > 500
