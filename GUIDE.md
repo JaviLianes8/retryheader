@@ -136,12 +136,19 @@ type, `bool` included, `ValueError` for a number out of range: a count or an int
 its exact built-in type (`str`, `int`, `float`, `bytes`, `bool`, `datetime`; `Token` and
 `DisplayString` keep theirs), so a subclass never changes how a value shows or hashes.
 They are frozen, compare with `extra`, hash without it, and pickle by public names only
-(`retryheader.<Name>`, `extra` as a plain dict).
+(`retryheader.<Name>`, `extra` as a plain dict). Two `extra` mappings are equal only when
+each value also has the same type, because the types are written differently: `True`, `1`
+and `1.0` differ, and so do a `Token`, a `DisplayString` and a `str` with the same text.
+Compared with a plain dict, `extra` compares by value, like any dict.
 `build_ratelimit_policy` and `build_ratelimit` raise `ValueError` for what a structured
 field cannot carry: text outside printable ASCII, an integer past 15 digits, a decimal
 past 12 integer digits, an invalid parameter name, an `extra` name that is already a
-defined parameter, a date with a fraction of a second. Decimals round half to even to
-three places, whatever the caller's `decimal` context.
+defined parameter, a date with a fraction of a second. A float is rounded to three places,
+half to even, as the shortest decimal that reads back as it (its `repr`, the number as
+written), whatever the caller's `decimal` context: `0.0025` gives `0.002` and `9.9995`
+gives `10.0`, as the httpwg serialisation tests require, and `0.1235` gives `0.124`.
+Rounding the binary value instead (as http-sf does) would give `0.003`, `9.999` and
+`0.123`, since the nearest float to each of those numbers lies just above or below it.
 
 ```python
 from retryheader import ServiceLimit, build_ratelimit, parse_ratelimit
@@ -158,8 +165,9 @@ print(build_ratelimit([ServiceLimit("a", 0, extra={"ratio": 0.0625})]))
 ## How long to wait: `delay_from_headers`
 
 `delay_from_headers(headers, *, now=None, use_date_header=False)` reads a mapping, any
-object with `items()` (`http.client.HTTPMessage`, werkzeug `Headers`) or an iterable of
-`(name, value)` pairs. Names match without case; repeated fields are all read.
+object with `items()` (`http.client.HTTPMessage`, `email.message.Message`, werkzeug
+`Headers`) or an iterable of `(name, value)` pairs. Names match without case; repeated
+fields are all read, so an invalid Retry-After line never hides a valid one.
 
 1. A valid Retry-After wins (the draft: it takes precedence); with several valid ones,
    the longest delay.
@@ -181,6 +189,8 @@ requests (`CaseInsensitiveDict`) and httpx (`Headers` as a mapping) join repeate
 of a field with a comma. Joined RateLimit lines read the same as separate lines; a joined
 Retry-After is not a valid value and is ignored. Pass httpx's `multi_items()` to keep
 every line. Names and values must be `str`: bytes pairs (as in ASGI) are a `TypeError`.
+The one exception is the `email.header.Header` that `email.message.Message` gives for a
+field holding 8-bit bytes, which is read as its text.
 
 ## Errors
 
@@ -231,3 +241,8 @@ Every 0.2.1 call keeps its result except for these changes (all in the changelog
   `delay_from_headers` skips empty members of `Age`.
 - A subclass of `int`, `float`, `str`, `bytes`, `datetime` or `timedelta` is read and
   stored as its plain value, so its own methods no longer change what is written.
+- Two `QuotaPolicy` or `ServiceLimit` values whose `extra` holds the same value with a
+  different type (`True` and `1`, a `Token` and a `str`) are no longer equal, and
+  `extra` can no longer be changed through `__init__`.
+- `delay_from_headers` reads an `email.message.Message` whose other fields hold 8-bit
+  bytes (it raised `TypeError`).

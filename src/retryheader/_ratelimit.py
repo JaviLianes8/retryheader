@@ -7,7 +7,8 @@ from datetime import datetime, timedelta, timezone
 from typing import TypeVar
 
 from ._errors import RateLimitError, quote, type_name
-from ._ratelimit_types import ParamValue, QuotaPolicy, ServiceLimit
+from ._extra import ParamValue
+from ._ratelimit_types import QuotaPolicy, ServiceLimit
 from ._sf import Member, parse_list
 from ._sf_scalars import SFError
 from ._sf_types import BareItem, Date, DisplayString, Token

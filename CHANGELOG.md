@@ -55,6 +55,11 @@ Internet-Draft.
   code is unaffected).
 - `delay_from_headers` skips empty members of `Age` (RFC 9110 section 5.6.1.2), so
   `Age: , 5` marks a cached response.
+- `delay_from_headers` reads an `email.message.Message` whose other fields hold 8-bit
+  bytes. Such a field comes back as an `email.header.Header`, which raised `TypeError`;
+  it is now read as its text.
+- The `extra` of a `QuotaPolicy` or `ServiceLimit` can no longer be changed through
+  `__init__`, which changed a frozen, hashed value in place.
 
 ### Changed
 
@@ -87,6 +92,10 @@ Internet-Draft.
 - The default mode reads spaces and tabs around the colons of an RFC 5322 time
   (`08 : 49 : 37`), as the obsolete syntax of RFC 5322 section 4.3 allows.
 - `TypeError` messages name the type of the value instead of quoting it.
+- Two `extra` mappings are equal, and hash alike, only when each value also has the same
+  type, so `QuotaPolicy` and `ServiceLimit` values written differently (`k`, `k=1` and
+  `k=1.0`, or a Token and a String) are no longer equal and no longer collapse in a set.
+  Compared with a plain dict, `extra` still compares by value.
 - The package no longer exposes the stray name `annotations`.
 
 ### Added

@@ -6,7 +6,8 @@ from collections.abc import Iterable, Mapping
 from datetime import datetime, timezone
 
 from ._errors import quote, type_name
-from ._ratelimit_types import ParamValue, QuotaPolicy, ServiceLimit
+from ._extra import ParamValue
+from ._ratelimit_types import QuotaPolicy, ServiceLimit
 from ._sf_serialize import serialize_list
 from ._sf_types import BareItem, Date
 from ._time import as_utc

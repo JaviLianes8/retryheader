@@ -5,33 +5,10 @@
 # ParamValue do not exist, and typing.get_type_hints (and pydantic) would fail.
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Any, NoReturn
+from typing import Any
 
 from ._errors import number, type_name
-from ._sf_types import DisplayString, Token
-from ._time import plain_datetime
-
-# The largest Integer a structured field can carry (RFC 9651 section 3.3.1).
-_MAX_INT = 999_999_999_999_999
-
-ParamValue = int | float | str | bytes | bool | datetime
-
-
-class _ReadOnlyDict(dict[str, ParamValue]):
-    """A dict that refuses changes but still pickles, copies and compares like one."""
-
-    def _refuse(self, *args: object, **kwargs: object) -> NoReturn:
-        raise TypeError("extra parameters are read only")
-
-    __setitem__ = __delitem__ = _refuse
-    clear = pop = popitem = setdefault = update = __ior__ = _refuse
-
-    def __hash__(self) -> int:  # type: ignore[override]
-        return hash(frozenset(self.items()))
-
-    def __reduce__(self) -> tuple[Any, ...]:
-        return (type(self), (dict(self),))
+from ._extra import _MAX_INT, ParamValue, _ReadOnlyDict, plain_value
 
 
 def _count(owner: object, attr: str, value: object, *, optional: bool, minimum: int) -> None:
@@ -64,35 +41,9 @@ def _common(owner: object, partition_key: object, extra: object) -> None:
     for key, value in extra.items():
         if not isinstance(key, str):
             raise TypeError(f"extra parameter names must be str, not {type_name(key)}")
-        copy[str.__str__(key)] = _plain(value)
+        copy[str.__str__(key)] = plain_value(value)
     # Freeze a private copy so a frozen instance cannot change through the caller's dict.
     object.__setattr__(owner, "extra", _ReadOnlyDict(copy))
-
-
-def _plain(value: object) -> ParamValue:
-    # Copy into the exact built-in type (Token and DisplayString keep their own), so a
-    # subclass's __repr__, __hash__ or __str__ never reaches repr(), hash() or the output.
-    if isinstance(value, bool):
-        return value is True
-    if isinstance(value, int):
-        plain = int.__index__(value)
-        if not -_MAX_INT <= plain <= _MAX_INT:
-            raise ValueError(
-                f"an integer extra parameter has at most 15 digits, not {number(plain)}"
-            )
-        return plain
-    if isinstance(value, float):
-        return float.__float__(value)
-    if isinstance(value, (Token, DisplayString)):
-        kind = Token if isinstance(value, Token) else DisplayString
-        return kind(str.__str__(value))
-    if isinstance(value, str):
-        return str.__str__(value)
-    if isinstance(value, bytes):
-        return bytes.__getitem__(value, slice(None))
-    if isinstance(value, datetime):
-        return plain_datetime(value)
-    raise TypeError(f"unsupported extra parameter value of type {type_name(value)}")
 
 
 @dataclass(frozen=True)
@@ -107,7 +58,10 @@ class QuotaPolicy:
     out of range (counts and integer ``extra`` values have at most 15 digits, as in a
     structured field). Every value is stored as its exact built-in type (``Token`` and
     ``DisplayString`` keep theirs), so a subclass never changes how it shows. Instances
-    are frozen, hashable (``extra`` aside) and pickle by public names only.
+    are frozen, hashable (``extra`` aside) and pickle by public names only; two are equal
+    only when their ``extra`` values also have the same types (``True``, ``1`` and ``1.0``
+    are written differently, so they differ). A float ``extra`` value is written to three
+    places, rounded half to even as its ``repr`` shows it (``0.0025`` gives ``0.002``).
 
     >>> from retryheader import QuotaPolicy, build_ratelimit_policy
     >>> policy = QuotaPolicy("burst", 100, window=60)

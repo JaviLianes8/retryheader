@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Iterable, Mapping
 from datetime import datetime
 from typing import Protocol
@@ -80,6 +81,8 @@ def _collect(headers: Headers) -> dict[str, list[str]]:
             name, value = pair
         except (TypeError, ValueError) as exc:
             raise TypeError("each header must be a (name, value) pair") from exc
+        if not isinstance(value, str):
+            value = _email_header(value)
         if not isinstance(name, str) or not isinstance(value, str):
             raise TypeError("header names and values must be str")
         fields.setdefault(str.__str__(name).lower(), []).append(str.__str__(value))
@@ -96,6 +99,16 @@ def _items(headers: object) -> Iterable[tuple[str, str]]:
     if isinstance(headers, (str, bytes, bytearray)) or not isinstance(headers, Iterable):
         raise TypeError("headers must be a mapping or an iterable of (name, value) pairs")
     return headers
+
+
+def _email_header(value: object) -> object:
+    # email.message.Message (compat32 policy) gives an email.header.Header for a field
+    # with 8-bit bytes; read it as text so one odd byte elsewhere does not stop the
+    # parse. Looked up, not imported: such a value means the module is already loaded.
+    header = getattr(sys.modules.get("email.header"), "Header", None)
+    if header is not None and isinstance(value, header):
+        return str(value)
+    return value
 
 
 def _date(values: list[str], now: datetime | None) -> datetime | None:
