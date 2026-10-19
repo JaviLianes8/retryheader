@@ -28,7 +28,9 @@ class DisplayString(str):
     """An sf-displaystring parameter value: Unicode text sent as ``%"..."``.
 
     A Display String parameter parses to this ``str`` subclass, and an ``extra`` value
-    of this type is written back percent-encoded as UTF-8, so it may hold any text.
+    of this type is written back percent-encoded as UTF-8, so it may hold any Unicode
+    text UTF-8 can encode. The text is checked when a field is built: ValueError for a
+    lone surrogate (a code point from U+D800 to U+DFFF), which has no UTF-8 form.
 
     >>> from retryheader import DisplayString, ServiceLimit, build_ratelimit
     >>> build_ratelimit([ServiceLimit("a", 1, extra={"note": DisplayString("caf\u00e9")})])

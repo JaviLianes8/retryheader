@@ -77,6 +77,15 @@ def test_tokens_and_display_strings_are_built_in_their_own_form() -> None:
         build_ratelimit([ServiceLimit("a", 1, extra={"m": Token("no spaces")})])
 
 
+@pytest.mark.parametrize("text", ["a\ud800b", "\udfff", "x" * 60 + "\udc80"])
+def test_a_display_string_utf8_cannot_encode_is_the_librarys_value_error(text: str) -> None:
+    limit = ServiceLimit("a", 1, extra={"m": DisplayString(text)})
+    with pytest.raises(ValueError, match="display strings hold text UTF-8 can encode") as caught:
+        build_ratelimit([limit])
+    assert type(caught.value) is ValueError
+    assert len(str(caught.value)) < 120
+
+
 class _Hostile(str):
     def __repr__(self) -> str:
         return "HOSTILE"

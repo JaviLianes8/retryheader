@@ -99,8 +99,14 @@ def _string(value: str) -> str:
 
 
 def _display(value: str) -> str:
+    value = str.__str__(value)
+    try:
+        encoded = value.encode("utf-8")
+    except UnicodeEncodeError:
+        # A lone surrogate has no UTF-8 form; say so without the codec's own wording.
+        raise ValueError(f"display strings hold text UTF-8 can encode: {quote(value)}") from None
     out = ['%"']
-    for byte in value.encode("utf-8"):
+    for byte in encoded:
         char = chr(byte)
         if char in '%"' or not 0x20 <= byte <= 0x7E:
             out.append(f"%{byte:02x}")

@@ -48,6 +48,11 @@ Internet-Draft.
   `weekday` or `days` can no longer change the text `format_http_date`,
   `build_retry_after` or `build_ratelimit` write (a hostile subclass could inject a line
   break into a header).
+- A `DisplayString` with a lone surrogate (a code point from U+D800 to U+DFFF, which
+  UTF-8 cannot encode) makes `build_ratelimit` and `build_ratelimit_policy` raise their
+  own short `ValueError` ("display strings hold text UTF-8 can encode: ..."). 0.2.1
+  raised the codec's `UnicodeEncodeError` (also a `ValueError`, so `except ValueError`
+  code is unaffected).
 - `delay_from_headers` skips empty members of `Age` (RFC 9110 section 5.6.1.2), so
   `Age: , 5` marks a cached response.
 

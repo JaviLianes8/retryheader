@@ -121,7 +121,8 @@ Any other parameter lands in `extra`, a read-only dict. A Date becomes an aware 
 `datetime`; a Token comes back as a `Token` and a Display String as a `DisplayString`,
 both public `str` subclasses, and each is written back in its own form. Build an `extra`
 value with `Token("sliding")` or `DisplayString("café")` to send those types; a plain
-`str` is sent as a String. A repeated parameter keeps its last value (RFC 9651).
+`str` is sent as a String. A `DisplayString` holds any text UTF-8 can encode: building one
+with a lone surrogate raises `ValueError`. A repeated parameter keeps its last value (RFC 9651).
 
 `parse_ratelimit_policy` and `parse_ratelimit` take the field value or all its field
 lines (combined with commas, as RFC 9651 requires). The policy field must list at least
@@ -221,6 +222,8 @@ Every 0.2.1 call keeps its result except for these changes (all in the changelog
 - A count (`quota`, `remaining`, `window`) or an integer `extra` value past 15 digits is
   a `ValueError` on creation; 0.2.1 accepted it and failed only when building.
 - `Token` and `DisplayString` are public, and their pickles name `retryheader`.
+- A `DisplayString` UTF-8 cannot encode (a lone surrogate) is the library's own short
+  `ValueError` when built; 0.2.1 raised the codec's `UnicodeEncodeError`.
 - An aware `now` with no UTC moment in years 1 to 9999 is a `ValueError` on entry; 0.2.1
   raised it only for some header forms.
 - The default mode reads spaces around the colons of an RFC 5322 time, and
