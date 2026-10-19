@@ -139,7 +139,8 @@ They are frozen, compare with `extra`, hash without it, and pickle by public nam
 (`retryheader.<Name>`, `extra` as a plain dict). Two `extra` mappings are equal only when
 each value also has the same type, because the types are written differently: `True`, `1`
 and `1.0` differ, and so do a `Token`, a `DisplayString` and a `str` with the same text.
-Compared with a plain dict, `extra` compares by value, like any dict.
+Compared with any other dict (a subclass such as `Counter` included), `extra` compares by
+value, like any dict, and it pickles, copies and deep-copies as a read-only mapping.
 `build_ratelimit_policy` and `build_ratelimit` raise `ValueError` for what a structured
 field cannot carry: text outside printable ASCII, an integer past 15 digits, a decimal
 past 12 integer digits, an invalid parameter name, an `extra` name that is already a
