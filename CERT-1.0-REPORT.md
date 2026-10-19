@@ -18,6 +18,7 @@ Progress:
 - [x] PR #4 and trace guard CLEAN
 - [x] QA lenses round 1: every finding fixed (0f47628, 2d5f019), nothing disputed
 - [x] QA lenses round 2 (a, e): every finding fixed (f26a4c8), nothing disputed
+- [x] QA lenses round 3 (a, e): every finding fixed (7be512e), nothing disputed
 - [ ] QA lenses re-verification (item 19) and independent review (item 16)
 
 ## Scorecard
@@ -42,7 +43,7 @@ Progress:
 | 16 | Independent reviewer | pending |
 | 17 | PR and trace guard | PR #4 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 38 mutants, 36 killed at once, 2 survivors killed by contracts added in 7310f6d |
-| 19 | Five independent QA lenses | round 1 and round 2 findings fixed (see QA round 1 and 2), re-verification pending |
+| 19 | Five independent QA lenses | round 1, 2 and 3 findings fixed (see QA rounds 1 to 3), re-verification pending |
 
 ## Baseline on 0.2.1 (before any change)
 
@@ -220,5 +221,37 @@ oracle, `RETRYHEADER_E2E=1` and `RETRYHEADER_E2E_PYPI=1`: `ruff format --check .
 no skips) all exit 0.
 
 ### Disputed findings (round 2)
+
+None.
+
+## QA round 3 (item 19)
+
+Lenses a and e re-ran on 5bb7461. Lens a confirmed N1 fixed and reported one docs
+finding; lens e reported five contract gaps. Every one is fixed in 7be512e and nothing is
+disputed. No behaviour changed in this round (tests and GUIDE only), so the CHANGELOG is
+unchanged.
+
+| Finding | Fix | Pinned by |
+| --- | --- | --- |
+| a-N2 the GUIDE reads as if creating a `DisplayString` with a lone surrogate raised | GUIDE: a `DisplayString` is checked when a field is built, not when it is created; `build_ratelimit` and `build_ratelimit_policy` raise the `ValueError`; the upgrade note says "when a field is built with it" (matches the docstring and the CHANGELOG) | docs |
+| e-F1 the N12 contract bites only on a host not on UTC | the check also runs in a child process with `TZ=UTC-3` (honoured by POSIX and the Windows C runtime; the child asserts its local offset is 3 hours), so a UTC host catches the mutant too | `test_a_now_with_no_offset_ignores_the_host_time_zone_even_on_a_utc_host` |
+| e-F2 a `now` with an offset but no `tzname` is not pinned as aware | contract with a tzinfo of +05:00 whose `dst` and `tzname` return None: the delay is 18060.0 | `test_a_now_with_an_offset_but_no_zone_name_is_read_with_its_offset` |
+| e-F3 the descriptor reads of `plain_datetime` are not pinned | the `datetime` subclass contract now lies in every component (`year`, `month`, `day`, `hour`, `minute`, `second`, `microsecond`, `tzinfo`, `fold`) and checks both parsing and building | `test_a_datetime_subclass_is_read_with_its_stored_components` |
+| e-F4 dropping `from None` survives | the contract asserts `__suppress_context__ is True` | `test_a_display_string_utf8_cannot_encode_is_the_librarys_value_error` |
+| e-F5 replacing `quote(value)` with `value!r` survives | the contract adds a 10 001 character input and keeps the message under 120 characters | same test, case `after-10000` |
+
+Each reported mutant, applied alone with `TZ=UTC0` (a host on UTC), now fails the new
+contracts: `if moment.tzinfo is None:` (F1), `or moment.tzname() is None:` (F2),
+`moment.year`, `moment.month`, `moment.day`, `moment.hour`, `moment.minute`,
+`moment.second`, `moment.microsecond` in `plain_datetime` (F3), dropping `from None` (F4)
+and `{value!r}` in `_display` (F5): all eleven killed.
+
+Gates on 7be512e's tree on another machine from a fresh clone, CPython 3.14.2, `TZ=UTC0`,
+with the fetched sources, http-sf, werkzeug, urllib3, httpx, requests, multidict,
+pydantic, the 0.2.1 oracle, `RETRYHEADER_E2E=1` and `RETRYHEADER_E2E_PYPI=1`:
+`ruff format --check .`, `ruff check .`, `mypy --strict src`, `mypy --strict src tests`
+and `pytest` (2658 passed, no skips) all exit 0.
+
+### Disputed findings (round 3)
 
 None.
