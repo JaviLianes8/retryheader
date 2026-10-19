@@ -7,25 +7,47 @@ from datetime import datetime, timezone
 import pytest
 
 from retryheader import delay_from_headers
-from tests.fixtures_text import draft_responses
+from tests.fixtures_text import CITED_B14, draft_response
 
 NOW = datetime(2026, 10, 21, 7, 28, 0, tzinfo=timezone.utc)
 SKEWED = datetime(2019, 8, 5, 9, 26, 50, tzinfo=timezone.utc)
 
 
 def test_draft_example_b14_waits_until_the_retry_after_date() -> None:
-    headers = draft_responses()[0]
     # Measured from the response's own Date header, whatever the local clock says.
-    assert delay_from_headers(headers, now=SKEWED, use_date_header=True) == 5.0
-    assert delay_from_headers(headers, now=SKEWED) == 15.0
+    assert delay_from_headers(CITED_B14, now=SKEWED, use_date_header=True) == 5.0
+    assert delay_from_headers(CITED_B14, now=SKEWED) == 15.0
 
 
-def test_draft_example_b3_retry_after_wins_over_ratelimit() -> None:
-    assert delay_from_headers(draft_responses()[1]) == 20.0
+def test_the_draft_examples_in_the_fetched_text() -> None:
+    assert draft_response("B.1.4.  Use in throttled responses") == CITED_B14
+    b3 = draft_response("B.3.  Dynamic limits for pushing back with Retry-After and slow down")
+    names = ["Content-Type", "Retry-After", "RateLimit-Policy", "RateLimit"]
+    assert [name for name, _ in b3] == names
+    # Retry-After (20) takes precedence over the effective window of RateLimit (40).
+    assert delay_from_headers(b3) == 20.0
 
 
-def test_the_fixtures_are_loaded() -> None:
-    assert [len(block) for block in draft_responses()] == [4, 4]
+def test_a_cached_response_has_no_ratelimit_delay() -> None:
+    limit = ("RateLimit", '"a";r=0;t=30')
+    assert delay_from_headers([limit]) == 30.0
+    assert delay_from_headers([limit, ("Age", "12")]) is None
+    assert delay_from_headers([limit, ("Age", "12"), ("Retry-After", "5")]) == 5.0
+
+
+@pytest.mark.parametrize("age", ["0", "000", "-1", "1.5", "soon", "", "0, 7"])
+def test_an_age_of_zero_or_an_invalid_age_keeps_the_ratelimit_delay(age: str) -> None:
+    assert delay_from_headers([("RateLimit", '"a";r=0;t=30'), ("Age", age)]) == 30.0
+
+
+@pytest.mark.parametrize("age", ["1", " 3600 ", "7, 0", "0" * 50 + "1"])
+def test_a_positive_age_is_read_from_the_first_member(age: str) -> None:
+    assert delay_from_headers([("RateLimit", '"a";r=0;t=30'), ("age", age)]) is None
+
+
+def test_age_lines_are_combined_before_the_first_member_is_taken() -> None:
+    headers = [("RateLimit", '"a";r=0;t=30'), ("Age", "9"), ("Age", "0")]
+    assert delay_from_headers(headers) is None
 
 
 def test_names_match_without_regard_to_case() -> None:
@@ -91,7 +113,22 @@ def test_http_client_messages_are_read_with_repeated_fields() -> None:
     assert delay_from_headers(message) == 8.0
 
 
-@pytest.mark.parametrize("headers", [None, "Retry-After: 5", b"x", 5, [("Retry-After", 5)]])
+@pytest.mark.parametrize(
+    "headers",
+    [
+        None,
+        "Retry-After: 5",
+        b"x",
+        5,
+        [("Retry-After", 5)],
+        ["ab"],
+        [b"ab"],
+        [("Retry-After",)],
+        [("Retry-After", "5", "x")],
+        [5],
+        [(b"Retry-After", b"5")],
+    ],
+)
 def test_unusable_header_containers_are_type_errors(headers: object) -> None:
     with pytest.raises(TypeError):
         delay_from_headers(headers)  # type: ignore[arg-type]

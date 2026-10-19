@@ -32,7 +32,7 @@ CASES = _cases()
 @pytest.mark.skipif(not fetched(), reason=SKIP_REASON)
 def test_the_suite_is_loaded() -> None:
     # Guards against a glob or filter change that silently skips the suite.
-    assert len(CASES) == 1157
+    assert len(CASES) == 1166
 
 
 @pytest.mark.parametrize("case", CASES)

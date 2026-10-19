@@ -102,9 +102,12 @@ def parse_bytes(cur: Cursor) -> bytes:
     cur.pos = end + 1
     if not _BASE64.fullmatch(content):
         raise SFError("byte sequences are base64")
+    bare = content.rstrip("=")
+    if content and not bare:
+        # Padding with no data is padding at the beginning, which the suite refuses.
+        raise SFError("a byte sequence cannot be only padding")
     try:
         # Padding is synthesised and pad bits are not checked, as section 4.2.7 asks.
-        bare = content.rstrip("=")
         return base64.b64decode(bare + "=" * (-len(bare) % 4), validate=True)
     except binascii.Error as exc:
         raise SFError("invalid base64") from exc

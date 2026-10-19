@@ -7,10 +7,12 @@ import retryheader
 # The public API. Add every exported name here as the library grows; this list is the
 # contract and the test below fails if the module and this list disagree.
 PUBLIC_API: list[str] = [
+    "DisplayString",
     "QuotaPolicy",
     "RateLimitError",
     "RetryAfterError",
     "ServiceLimit",
+    "Token",
     "build_ratelimit",
     "build_ratelimit_policy",
     "build_retry_after",

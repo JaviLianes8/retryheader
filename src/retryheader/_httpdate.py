@@ -5,23 +5,24 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 
-from ._calendar import MONTHS, assemble
-from ._errors import RetryAfterError
+from ._calendar import DAYS, MONTHS, assemble
+from ._errors import RetryAfterError, quote
 from ._lenient import parse_rfc5322
-from ._time import as_utc, check_datetime, strip_ows
+from ._time import as_utc, check_datetime, check_now, check_text, strip_ows
 
-_DAYS = "Mon|Tue|Wed|Thu|Fri|Sat|Sun"
+_DAYS = "|".join(DAYS)
 _LONG_DAYS = "Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday"
 _MONTH = "|".join(MONTHS)
 _TIME = r"(?P<hour>\d{2}):(?P<minute>\d{2}):(?P<second>\d{2})"
 # The grammar is case sensitive and allows exactly one SP between fields, except the
 # asctime day, which is padded with a second SP when it has one digit.
 _FORMATS = (
-    rf"(?:{_DAYS}), (?P<day>\d{{2}}) (?P<month>{_MONTH}) (?P<year>\d{{4}}) {_TIME} GMT",
-    rf"(?:{_LONG_DAYS}), (?P<day>\d{{2}})-(?P<month>{_MONTH})-(?P<yy>\d{{2}}) {_TIME} GMT",
-    rf"(?:{_DAYS}) (?P<month>{_MONTH}) (?P<day>\d{{2}}| \d) {_TIME} (?P<year>\d{{4}})",
+    rf"(?P<dn>{_DAYS}), (?P<day>\d{{2}}) (?P<month>{_MONTH}) (?P<year>\d{{4}}) {_TIME} GMT",
+    rf"(?P<dn>{_LONG_DAYS}), (?P<day>\d{{2}})-(?P<month>{_MONTH})-(?P<yy>\d{{2}}) {_TIME} GMT",
+    rf"(?P<dn>{_DAYS}) (?P<month>{_MONTH}) (?P<day>\d{{2}}| \d) {_TIME} (?P<year>\d{{4}})",
 )
-_PATTERNS = tuple(re.compile(pattern, re.ASCII) for pattern in _FORMATS)
+_EXACT = tuple(re.compile(pattern, re.ASCII) for pattern in _FORMATS)
+_ANY_CASE = tuple(re.compile(pattern, re.ASCII | re.IGNORECASE) for pattern in _FORMATS)
 
 
 def parse_http_date(value: str, *, now: datetime | None = None, strict: bool = False) -> datetime:
@@ -34,29 +35,45 @@ def parse_http_date(value: str, *, now: datetime | None = None, strict: bool = F
     default), as the RFC requires, and a leap second ``:60`` reads as the next second.
     Surrounding spaces and tabs are ignored.
 
-    Unless ``strict`` is true, RFC 5322 dates with an explicit zone (``+0200``,
-    ``GMT``, ``UTC``, ``EST``) and HTTP-dates in another letter case are accepted too,
-    since the RFC asks recipients to be robust. A date without a zone is always
-    rejected. Raises RetryAfterError on invalid input, TypeError on a non-string.
+    ``strict=True`` accepts the RFC 9110 grammar and nothing else, and also requires the
+    day name to be the day the date falls on. By default the parser is robust, as the RFC
+    asks recipients to be: HTTP-dates in another letter case and RFC 5322 dates with an
+    explicit zone (``+0200``, ``GMT``, ``UT``, ``UTC``, ``EST``) are accepted too, and the
+    day name is not checked. A date without a zone, or with a zone whose offset is not
+    known, is always rejected. Raises RetryAfterError on invalid input, TypeError when
+    ``value`` is not a str or ``now`` not a datetime, ValueError (not a RetryAfterError)
+    when ``now`` is aware and its UTC moment falls outside years 1 to 9999.
+
+    >>> from datetime import datetime, timezone
+    >>> from retryheader import parse_http_date
+    >>> parse_http_date("Sun, 06 Nov 1994 08:49:37 GMT")
+    datetime.datetime(1994, 11, 6, 8, 49, 37, tzinfo=datetime.timezone.utc)
+    >>> now = datetime(2026, 10, 21, tzinfo=timezone.utc)
+    >>> parse_http_date("Monday, 01-Jan-60 00:00:00 GMT", now=now).year
+    2060
+    >>> parse_http_date("Sun, 06 Nov 1994 10:49:37 +0200").hour
+    8
+    >>> parse_http_date("Sun, 06 Nov 1994 10:49:37 +0200", strict=True)
+    Traceback (most recent call last):
+    ...
+    retryheader.RetryAfterError: invalid HTTP-date: 'Sun, 06 Nov 1994 10:49:37 +0200'
     """
-    if not isinstance(value, str):
-        raise TypeError(f"HTTP-date must be a str, not {type(value).__name__}")
-    if now is not None:
-        check_datetime(now)
+    value = check_text(value, "HTTP-date")
+    now = check_now(now)
     text = strip_ows(value)
-    for pattern in _PATTERNS:
+    for pattern in _EXACT:
         match = pattern.fullmatch(text)
         if match is not None:
-            return _from_match(match, text, now)
+            return _from_match(match, text, now, strict)
     if not strict:
-        for pattern in _PATTERNS:
-            match = re.fullmatch(pattern.pattern, text, re.ASCII | re.IGNORECASE)
+        for pattern in _ANY_CASE:
+            match = pattern.fullmatch(text)
             if match is not None:
-                return _from_match(match, text, now)
+                return _from_match(match, text, now, strict)
         lenient = parse_rfc5322(text, now)
         if lenient is not None:
             return lenient
-    raise RetryAfterError(f"invalid HTTP-date: {value!r}")
+    raise RetryAfterError(f"invalid HTTP-date: {quote(value)}")
 
 
 def format_http_date(moment: datetime) -> str:
@@ -66,6 +83,13 @@ def format_http_date(moment: datetime) -> str:
     whole second, so the rendered moment is never earlier than the one given.
     Raises TypeError for a non-datetime, ValueError when the UTC moment (rounded up)
     falls outside years 1 to 9999.
+
+    >>> from datetime import datetime, timedelta, timezone
+    >>> from retryheader import format_http_date
+    >>> format_http_date(datetime(1994, 11, 6, 8, 49, 37))
+    'Sun, 06 Nov 1994 08:49:37 GMT'
+    >>> format_http_date(datetime(1994, 11, 6, 10, 49, 36, 1, timezone(timedelta(hours=2))))
+    'Sun, 06 Nov 1994 08:49:37 GMT'
     """
     check_datetime(moment)
     utc = as_utc(moment)
@@ -73,12 +97,12 @@ def format_http_date(moment: datetime) -> str:
         if utc.replace(microsecond=0) == datetime.max.replace(microsecond=0, tzinfo=utc.tzinfo):
             raise ValueError("rounding up passes the last representable second")
         utc = utc.replace(microsecond=0) + timedelta(seconds=1)
-    day = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")[utc.weekday()]
+    day = DAYS[utc.weekday()]
     month = MONTHS[utc.month - 1]
     return f"{day}, {utc.day:02d} {month} {utc.year:04d} {utc:%H:%M:%S} GMT"
 
 
-def _from_match(match: re.Match[str], text: str, now: datetime | None) -> datetime:
+def _from_match(match: re.Match[str], text: str, now: datetime | None, strict: bool) -> datetime:
     fields = match.groupdict()
     year = fields.get("year")
     return assemble(
@@ -90,4 +114,5 @@ def _from_match(match: re.Match[str], text: str, now: datetime | None) -> dateti
         offset=0,
         now=now,
         text=text,
+        weekday=DAYS.index(fields["dn"][:3].title()) if strict else None,
     )

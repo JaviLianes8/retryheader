@@ -5,16 +5,23 @@ from datetime import datetime, timedelta, timezone
 import pytest
 
 from retryheader import RetryAfterError, parse_retry_after
-from tests.fixtures_text import rfc9110_retry_after
+from tests.fixtures_text import CITED_RETRY_AFTER, rfc9110_retry_after
 
 NOW = datetime(2026, 10, 21, 7, 28, 0, tzinfo=timezone.utc)
+BEFORE = datetime(1999, 12, 31, 23, 57, 59, tzinfo=timezone.utc)
 
 
-def test_the_rfc9110_examples_parse() -> None:
-    date_form, seconds_form = rfc9110_retry_after()
-    assert parse_retry_after(seconds_form) == 120.0
-    before = datetime(1999, 12, 31, 23, 57, 59, tzinfo=timezone.utc)
-    assert parse_retry_after(date_form, now=before, strict=True) == 120.0
+@pytest.mark.parametrize("value", CITED_RETRY_AFTER)
+def test_the_cited_rfc9110_examples_wait_two_minutes(value: str) -> None:
+    # "In the latter example, the delay is 2 minutes"; the date is two minutes after BEFORE.
+    assert parse_retry_after(value, now=BEFORE, strict=True) == 120.0
+
+
+def test_every_rfc9110_example_in_the_fetched_text_parses() -> None:
+    examples = rfc9110_retry_after()
+    assert examples == CITED_RETRY_AFTER
+    for value in examples:
+        assert parse_retry_after(value, now=BEFORE, strict=True) == 120.0
 
 
 def test_delta_seconds_parses_to_float() -> None:

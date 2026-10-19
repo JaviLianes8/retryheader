@@ -1,52 +1,49 @@
 """The values carried by the RateLimit and RateLimit-Policy fields."""
 
-from __future__ import annotations
-
+# No "from __future__ import annotations": the classes show as retryheader.<Name>, so
+# string annotations would be resolved in the package namespace, where Mapping and
+# ParamValue do not exist, and typing.get_type_hints (and pydantic) would fail.
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Any, NoReturn
+from typing import Any
 
-ParamValue = int | float | str | bytes | bool | datetime
-
-
-class _ReadOnlyDict(dict[str, ParamValue]):
-    """A dict that refuses changes but still pickles, copies and compares like one."""
-
-    def _refuse(self, *args: object, **kwargs: object) -> NoReturn:
-        raise TypeError("extra parameters are read only")
-
-    __setitem__ = __delitem__ = _refuse
-    clear = pop = popitem = setdefault = update = __ior__ = _refuse
-
-    def __hash__(self) -> int:  # type: ignore[override]
-        return hash(frozenset(self.items()))
-
-    def __reduce__(self) -> tuple[Any, ...]:
-        return (type(self), (dict(self),))
+from ._errors import number, type_name
+from ._extra import _MAX_INT, ParamValue, _ReadOnlyDict, plain_value
 
 
-_NO_EXTRA: Mapping[str, ParamValue] = _ReadOnlyDict()
-
-
-def _check_count(name: str, value: object, *, optional: bool, minimum: int) -> None:
+def _count(owner: object, attr: str, value: object, *, optional: bool, minimum: int) -> None:
     if value is None and optional:
         return
     if isinstance(value, bool) or not isinstance(value, int):
-        raise TypeError(f"{name} must be an int, not {type(value).__name__}")
-    if value < minimum:
-        raise ValueError(f"{name} must be at least {minimum}, not {value}")
+        raise TypeError(f"{attr} must be an int, not {type_name(value)}")
+    plain = int.__index__(value)
+    if plain < minimum:
+        raise ValueError(f"{attr} must be at least {minimum}, not {number(plain)}")
+    if plain > _MAX_INT:
+        raise ValueError(f"{attr} must be at most {_MAX_INT}, not {number(plain)}")
+    object.__setattr__(owner, attr, plain)
 
 
-def _check_common(owner: object, name: object, partition_key: object, extra: object) -> None:
-    if not isinstance(name, str):
-        raise TypeError(f"policy name must be a str, not {type(name).__name__}")
-    if partition_key is not None and not isinstance(partition_key, bytes):
-        raise TypeError("partition_key must be bytes or None")
+def _text(owner: object, attr: str, value: object, what: str) -> None:
+    if not isinstance(value, str):
+        raise TypeError(f"{what} must be a str, not {type_name(value)}")
+    object.__setattr__(owner, attr, str.__str__(value))
+
+
+def _common(owner: object, partition_key: object, extra: object) -> None:
+    if partition_key is not None:
+        if not isinstance(partition_key, bytes):
+            raise TypeError(f"partition_key must be bytes or None, not {type_name(partition_key)}")
+        object.__setattr__(owner, "partition_key", bytes.__getitem__(partition_key, slice(None)))
     if not isinstance(extra, Mapping):
-        raise TypeError("extra must be a mapping")
+        raise TypeError(f"extra must be a mapping, not {type_name(extra)}")
+    copy: dict[str, ParamValue] = {}
+    for key, value in extra.items():
+        if not isinstance(key, str):
+            raise TypeError(f"extra parameter names must be str, not {type_name(key)}")
+        copy[str.__str__(key)] = plain_value(value)
     # Freeze a private copy so a frozen instance cannot change through the caller's dict.
-    object.__setattr__(owner, "extra", _ReadOnlyDict(extra))
+    object.__setattr__(owner, "extra", _ReadOnlyDict(copy))
 
 
 @dataclass(frozen=True)
@@ -54,9 +51,28 @@ class QuotaPolicy:
     """One quota policy item of a RateLimit-Policy field.
 
     ``name`` identifies the policy, ``quota`` is the ``q`` parameter (quota units the
-    policy allows), ``window`` is ``w`` (seconds, at least 1, or None when not sent),
-    ``unit`` is ``qu`` (``"requests"`` by default), ``partition_key`` is ``pk`` and
-    ``extra`` holds every other parameter, read only.
+    policy allows, at least 0), ``window`` is ``w`` (seconds, at least 1, or None when not
+    sent), ``unit`` is ``qu`` (``"requests"`` by default), ``partition_key`` is ``pk`` and
+    ``extra`` holds every other parameter, read only. Values are checked on creation:
+    TypeError for a wrong type (``bool`` is not an int here), ValueError for a number
+    out of range (counts and integer ``extra`` values have at most 15 digits, as in a
+    structured field). Every value is stored as its exact built-in type (``Token`` and
+    ``DisplayString`` keep theirs), so a subclass never changes how it shows. Instances
+    are frozen, hashable (``extra`` aside) and pickle by public names only; two are equal
+    only when their ``extra`` values also have the same types (``True``, ``1`` and ``1.0``
+    are written differently, so they differ). A float ``extra`` value is written to three
+    places, rounded half to even as its ``repr`` shows it (``0.0025`` gives ``0.002``).
+
+    >>> from retryheader import QuotaPolicy, build_ratelimit_policy
+    >>> policy = QuotaPolicy("burst", 100, window=60)
+    >>> policy.unit, dict(policy.extra)
+    ('requests', {})
+    >>> build_ratelimit_policy([policy])
+    '"burst";q=100;w=60'
+    >>> QuotaPolicy("burst", 100, window=0)
+    Traceback (most recent call last):
+    ...
+    ValueError: window must be at least 1, not 0
     """
 
     name: str
@@ -64,14 +80,20 @@ class QuotaPolicy:
     window: int | None = None
     unit: str = "requests"
     partition_key: bytes | None = None
-    extra: Mapping[str, ParamValue] = field(default=_NO_EXTRA, hash=False)
+    extra: Mapping[str, ParamValue] = field(default_factory=_ReadOnlyDict, hash=False)
 
     def __post_init__(self) -> None:
-        _check_count("quota", self.quota, optional=False, minimum=0)
-        _check_count("window", self.window, optional=True, minimum=1)
-        if not isinstance(self.unit, str):
-            raise TypeError(f"unit must be a str, not {type(self.unit).__name__}")
-        _check_common(self, self.name, self.partition_key, self.extra)
+        # The order of the checks is the order 0.2 used, so the same error comes first.
+        _count(self, "quota", self.quota, optional=False, minimum=0)
+        _count(self, "window", self.window, optional=True, minimum=1)
+        _text(self, "unit", self.unit, "unit")
+        _text(self, "name", self.name, "policy name")
+        _common(self, self.partition_key, self.extra)
+
+    def __reduce__(self) -> tuple[Any, ...]:
+        # Built from public values only: the pickle never names a private module.
+        fields = (self.name, self.quota, self.window, self.unit, self.partition_key)
+        return (type(self), (*fields, dict(self.extra)))
 
 
 @dataclass(frozen=True)
@@ -79,18 +101,31 @@ class ServiceLimit:
     """One service limit item of a RateLimit field.
 
     ``policy`` names the quota policy, ``remaining`` is the ``r`` parameter (the
-    available quota), ``window`` is ``t`` (seconds within which no more than
-    ``remaining`` units may be used, or None when not sent), ``partition_key`` is
-    ``pk`` and ``extra`` holds every other parameter, read only.
+    available quota, at least 0), ``window`` is ``t`` (seconds within which no more than
+    ``remaining`` units may be used, at least 0, or None when not sent),
+    ``partition_key`` is ``pk`` and ``extra`` holds every other parameter, read only.
+    Checked, frozen and hashable like ``QuotaPolicy``.
+
+    >>> from retryheader import ServiceLimit, build_ratelimit
+    >>> limit = ServiceLimit("burst", 0, window=30, extra={"acme-tier": "gold"})
+    >>> limit.remaining, limit.window, limit.extra["acme-tier"]
+    (0, 30, 'gold')
+    >>> build_ratelimit([limit])
+    '"burst";r=0;t=30;acme-tier="gold"'
     """
 
     policy: str
     remaining: int
     window: int | None = None
     partition_key: bytes | None = None
-    extra: Mapping[str, ParamValue] = field(default=_NO_EXTRA, hash=False)
+    extra: Mapping[str, ParamValue] = field(default_factory=_ReadOnlyDict, hash=False)
 
     def __post_init__(self) -> None:
-        _check_count("remaining", self.remaining, optional=False, minimum=0)
-        _check_count("window", self.window, optional=True, minimum=0)
-        _check_common(self, self.policy, self.partition_key, self.extra)
+        _count(self, "remaining", self.remaining, optional=False, minimum=0)
+        _count(self, "window", self.window, optional=True, minimum=0)
+        _text(self, "policy", self.policy, "policy name")
+        _common(self, self.partition_key, self.extra)
+
+    def __reduce__(self) -> tuple[Any, ...]:
+        fields = (self.policy, self.remaining, self.window, self.partition_key)
+        return (type(self), (*fields, dict(self.extra)))

@@ -41,7 +41,7 @@ SERIALISATION = [pytest.param(case, id=name) for name, case in _load("serialisat
 
 @pytest.mark.skipif(not fetched(), reason=SKIP_REASON)
 def test_the_cases_are_loaded() -> None:
-    assert len(CANONICAL) == 579
+    assert len(CANONICAL) == 587
     assert len(SERIALISATION) == 355
 
 

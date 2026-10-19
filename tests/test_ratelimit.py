@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timezone
 
 import pytest
@@ -11,22 +12,28 @@ from retryheader import (
     parse_ratelimit,
     parse_ratelimit_policy,
 )
-from tests.fixtures_text import draft_fields
+from tests.fixtures_text import CITED_LIMITS, CITED_POLICIES, draft_fields
 
 
-@pytest.mark.parametrize("value", draft_fields("RateLimit-Policy"))
-def test_every_draft_policy_example_parses(value: str) -> None:
+@pytest.mark.parametrize("value", CITED_POLICIES)
+def test_the_cited_policy_examples_parse(value: str) -> None:
     assert parse_ratelimit_policy(value)
 
 
-@pytest.mark.parametrize("value", draft_fields("RateLimit"))
-def test_every_draft_limit_example_parses(value: str) -> None:
+@pytest.mark.parametrize("value", CITED_LIMITS)
+def test_the_cited_limit_examples_parse(value: str) -> None:
     assert parse_ratelimit(value)
 
 
-def test_the_fixtures_are_loaded() -> None:
-    assert len(draft_fields("RateLimit-Policy")) == 17
-    assert len(draft_fields("RateLimit")) == 23
+def test_every_example_in_the_fetched_draft_parses() -> None:
+    policies, limits = draft_fields("RateLimit-Policy"), draft_fields("RateLimit")
+    assert (len(policies), len(limits)) == (17, 23)
+    assert set(CITED_POLICIES) <= set(policies)
+    assert set(CITED_LIMITS) <= set(limits)
+    for value in policies:
+        assert parse_ratelimit_policy(value), value
+    for value in limits:
+        assert parse_ratelimit(value), value
 
 
 def test_policies_carry_every_defined_parameter() -> None:
@@ -107,6 +114,11 @@ def test_a_repeated_parameter_keeps_the_last_value() -> None:
         '"a";q=1 "b";q=2',
         '"a";q=1000000000000000',
         '"café";q=1',
+        '%"a";q=1',
+        '"a";q=1;qu=%"requests"',
+        '"a";q=1;qu=:cmVxdWVzdHM=:',
+        "a;q=1",
+        "1;q=1",
     ],
 )
 def test_malformed_policy_fields_raise(value: str) -> None:
@@ -128,6 +140,12 @@ def test_malformed_policy_fields_raise(value: str) -> None:
         '"a";r=1;pk=abc',
         '"a";r=1;at=@999999999999999',
         '"a";r=1,,"b";r=2',
+        '%"a";r=1',
+        "?1;r=1",
+        "@0;r=1",
+        ":YQ==:;r=1",
+        '"a";r=1;pk=%"key"',
+        '"a";r=1;pk',
     ],
 )
 def test_malformed_limit_fields_raise(value: str) -> None:
@@ -151,3 +169,19 @@ def test_non_text_input_is_a_type_error(value: object) -> None:
         parse_ratelimit(value)  # type: ignore[arg-type]
     with pytest.raises(TypeError):
         parse_ratelimit_policy(value)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("parse", "value", "key"),
+    [
+        (parse_ratelimit, '"a";r=?0', "r"),
+        (parse_ratelimit, '"a";r=1;t=?1', "t"),
+        (parse_ratelimit_policy, '"a";q=?1', "q"),
+        (parse_ratelimit_policy, '"a";q=1;w=?1', "w"),
+    ],
+)
+def test_a_boolean_is_not_an_integer_parameter(
+    parse: Callable[[str], object], value: str, key: str
+) -> None:
+    with pytest.raises(RateLimitError, match=f"item 'a': {key} must be an Integer$"):
+        parse(value)

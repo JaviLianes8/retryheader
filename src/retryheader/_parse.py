@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from ._errors import RetryAfterError
+from ._errors import RetryAfterError, quote
 from ._httpdate import parse_http_date
-from ._time import as_utc, check_datetime, strip_ows
+from ._time import check_now, check_text, strip_ows
 
 
 def parse_retry_after(value: str, *, now: datetime | None = None, strict: bool = False) -> float:
@@ -21,12 +21,26 @@ def parse_retry_after(value: str, *, now: datetime | None = None, strict: bool =
     before handing it to ``time.sleep`` or ``timedelta``. ``strict`` limits dates to the
     RFC 9110 grammar, see ``parse_http_date``.
 
-    Raises RetryAfterError on anything else, TypeError when value is not a str.
+    Raises RetryAfterError on anything else, TypeError when ``value`` is not a str or
+    ``now`` not a datetime, ValueError (not a RetryAfterError) when ``now`` is aware and
+    its UTC moment falls outside years 1 to 9999, whatever the value.
+
+    >>> from datetime import datetime, timezone
+    >>> from retryheader import parse_retry_after
+    >>> parse_retry_after("120")
+    120.0
+    >>> now = datetime(1999, 12, 31, 23, 57, 59, tzinfo=timezone.utc)
+    >>> parse_retry_after("Fri, 31 Dec 1999 23:59:59 GMT", now=now)
+    120.0
+    >>> parse_retry_after("Fri, 31 Dec 1999 23:00:00 GMT", now=now)
+    0.0
+    >>> parse_retry_after("1.5")
+    Traceback (most recent call last):
+    ...
+    retryheader.RetryAfterError: invalid Retry-After value: '1.5'
     """
-    if not isinstance(value, str):
-        raise TypeError(f"Retry-After value must be a str, not {type(value).__name__}")
-    if now is not None:
-        check_datetime(now)
+    value = check_text(value, "Retry-After value")
+    now = check_now(now)
     text = strip_ows(value)
     if not text:
         raise RetryAfterError("empty Retry-After value")
@@ -36,6 +50,6 @@ def parse_retry_after(value: str, *, now: datetime | None = None, strict: bool =
     try:
         when = parse_http_date(text, now=now, strict=strict)
     except RetryAfterError as exc:
-        raise RetryAfterError(f"invalid Retry-After value: {value!r}") from exc
-    reference = as_utc(now) if now is not None else datetime.now(timezone.utc)
+        raise RetryAfterError(f"invalid Retry-After value: {quote(value)}") from exc
+    reference = now if now is not None else datetime.now(timezone.utc)
     return max(0.0, (when - reference).total_seconds())

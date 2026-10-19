@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from enum import IntEnum
 
 import pytest
 
@@ -69,3 +70,37 @@ def test_build_rejects_booleans() -> None:
 def test_build_rejects_unsupported_types() -> None:
     with pytest.raises(TypeError):
         build_retry_after("120")  # type: ignore[arg-type]
+
+
+class _Seconds(IntEnum):
+    TWO_MINUTES = 120
+
+
+class _OddInt(int):
+    def __str__(self) -> str:
+        return "odd"
+
+    def __index__(self) -> int:
+        return 7
+
+
+class _OddFloat(float):
+    def __float__(self) -> float:
+        return 99.0
+
+    def __ceil__(self) -> int:
+        return 99
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [(_Seconds.TWO_MINUTES, "120"), (_OddInt(5), "5"), (_OddFloat(2.5), "3")],
+)
+def test_number_subclasses_are_written_as_their_own_value(value: float, expected: str) -> None:
+    assert build_retry_after(value) == expected
+
+
+def test_type_errors_name_the_type_without_echoing_the_value() -> None:
+    with pytest.raises(TypeError) as caught:
+        build_retry_after([0] * 100_000)  # type: ignore[arg-type]
+    assert str(caught.value) == "unsupported Retry-After value of type list"
