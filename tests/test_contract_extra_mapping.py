@@ -83,3 +83,22 @@ def test_extra_compares_by_value_with_any_dict(index: int, other: dict[str, int]
     changed = copy.copy(other)
     changed["k"] = 7
     assert extra != changed and changed != extra
+
+
+NON_MAPPINGS: list[tuple[str, object]] = [
+    ("int", 5),
+    ("None", None),
+    ("str", "k"),
+    ("pairs", [("k", 1), ("j", 2)]),
+    ("limit", ServiceLimit("a", 1, extra=EXTRA)),
+]
+
+
+@pytest.mark.filterwarnings("error")
+@pytest.mark.parametrize("other", [m[1] for m in NON_MAPPINGS], ids=[m[0] for m in NON_MAPPINGS])
+@pytest.mark.parametrize("index", range(4), ids=["built", "parsed", "policy", "parsed-policy"])
+def test_extra_differs_from_anything_not_a_mapping(index: int, other: object) -> None:
+    extra = _items()[index].extra
+    assert (extra != other) is True and (other != extra) is True
+    assert (extra == other) is False and (other == extra) is False
+    assert extra.__ne__(other) is NotImplemented and extra.__eq__(other) is NotImplemented
