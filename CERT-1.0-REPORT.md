@@ -19,6 +19,7 @@ Progress:
 - [x] QA lenses round 1: every finding fixed (0f47628, 2d5f019), nothing disputed
 - [x] QA lenses round 2 (a, e): every finding fixed (f26a4c8), nothing disputed
 - [x] QA lenses round 3 (a, e): every finding fixed (7be512e), nothing disputed
+- [x] QA lenses round 4 (e): every finding fixed (9640c0b), nothing disputed
 - [ ] QA lenses re-verification (item 19) and independent review (item 16)
 
 ## Scorecard
@@ -43,7 +44,7 @@ Progress:
 | 16 | Independent reviewer | pending |
 | 17 | PR and trace guard | PR #4 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
 | 18 | Contracts bite (mutations) | PASS: author 38 mutants, 36 killed at once, 2 survivors killed by contracts added in 7310f6d |
-| 19 | Five independent QA lenses | round 1, 2 and 3 findings fixed (see QA rounds 1 to 3), re-verification pending |
+| 19 | Five independent QA lenses | round 1 to 4 findings fixed (see QA rounds 1 to 4), re-verification pending |
 
 ## Baseline on 0.2.1 (before any change)
 
@@ -253,5 +254,32 @@ pydantic, the 0.2.1 oracle, `RETRYHEADER_E2E=1` and `RETRYHEADER_E2E_PYPI=1`:
 and `pytest` (2658 passed, no skips) all exit 0.
 
 ### Disputed findings (round 3)
+
+None.
+
+## QA round 4 (item 19)
+
+Lens e re-ran on f51bc1e. It confirmed F1 to F5 killed under `TZ=UTC0` and under the
+host zone, proved N16 (dropping `str.__str__` in `_display`) equivalent, and reported two
+surviving mutants. Both are fixed in 9640c0b and nothing is disputed. No behaviour changed
+in this round (tests only), so the CHANGELOG is unchanged.
+
+| Finding | Fix | Pinned by |
+| --- | --- | --- |
+| e-N14 `from None` replaced with `from exc` in `_display` survives (`__suppress_context__` stays True, `__cause__` holds the codec error) | the contract also asserts `__cause__ is None` and that the formatted traceback has no `UnicodeEncodeError` | `test_a_display_string_utf8_cannot_encode_is_the_librarys_value_error` |
+| e-N25 `isinstance(moment, date)` in `check_datetime` survives (a plain `date` fails later with CPython's descriptor message) | contract: `format_http_date(date(2026, 1, 1))` raises `TypeError` with exactly `expected a datetime, not date` | `test_format_rejects_a_plain_date_with_its_own_message` |
+
+Each reported mutant, applied alone, now fails the new contract: `except UnicodeEncodeError
+as exc: ... from exc` fails cases `after-60` and `after-10000`, and
+`isinstance(moment, date)` fails the plain date contract.
+
+Gates on 9640c0b's tree on another machine from a fresh clone, CPython 3.14, with the
+fetched sources, http-sf, werkzeug, urllib3, httpx, requests, multidict, pydantic, the
+0.2.1 oracle, `RETRYHEADER_E2E=1` and `RETRYHEADER_E2E_PYPI=1`: `ruff format --check .`,
+`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` (2659 tests)
+all exit 0 in the host zone; the time, HTTP-date and public type contracts also pass with
+`TZ=UTC0`.
+
+### Disputed findings (round 4)
 
 None.
